@@ -8,6 +8,7 @@
 class LinkMappingExtension extends Extension {
 
 	public function onBeforeHTTPError404( $request ) {
+		error_log($request->getURL());
 
 		// first check for a link mapping to direct away to.
 		$link = $request->getURL();//
