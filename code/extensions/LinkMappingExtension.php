@@ -8,8 +8,6 @@
 class LinkMappingExtension extends Extension {
 
 	public function onBeforeHTTPError404( $request ) {
-		error_log($request->getURL());
-
 		// first check for a link mapping to direct away to.
 		$link = $request->getURL();//
 		if ( count( $request->getVars() ) > 1 ) {
@@ -19,7 +17,6 @@ class LinkMappingExtension extends Extension {
 		$map = LinkMapping::get_by_link( $link );
 
 		if ( $map ) {
-		error_log($map->getLink());
 			$response = new SS_HTTPResponse();
 			$response->redirect( $map->getLink(), 301 );
 
