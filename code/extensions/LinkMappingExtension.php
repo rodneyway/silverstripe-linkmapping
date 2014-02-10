@@ -19,6 +19,7 @@ class LinkMappingExtension extends Extension {
 		$map = LinkMapping::get_by_link( $link );
 
 		if ( $map ) {
+		error_log($map->getLink());
 			$response = new SS_HTTPResponse();
 			$response->redirect( $map->getLink(), 301 );
 
