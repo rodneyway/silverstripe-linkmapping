@@ -23,6 +23,13 @@ class LinkMapping extends DataObject {
 		'RedirectLink',
 		'RedirectPage.Title'
 	);
+	
+	public $export_fields = array(
+		'MappedLink'   => 'MappedLink',
+		'RedirectType' => 'RedirectType',
+		'RedirectLink' => 'RedirectLink',
+		'RedirectPageID' => 'RedirectPageID'
+	);
 
 	public static $searchable_fields = array(
 		'MappedLink'   => array('filter' => 'PartialMatchFilter'),
