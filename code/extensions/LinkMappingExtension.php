@@ -7,7 +7,7 @@
  */
 class LinkMappingExtension extends Extension {
 
-	protected function onBeforeHTTPError404( $request ) {
+	public function onBeforeHTTPError404( $request ) {
 
 		// first check for a link mapping to direct away to.
 		$link = $request->getURL();//
@@ -21,7 +21,7 @@ class LinkMappingExtension extends Extension {
 			$response = new SS_HTTPResponse();
 			$response->redirect( $map->getLink(), 301 );
 
-			throw new SS_HTTPResponse( $response );
+			throw new SS_HTTPResponse_Exception( $response );
 		}
 	}
 
