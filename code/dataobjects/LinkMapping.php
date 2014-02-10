@@ -45,13 +45,8 @@ class LinkMapping extends DataObject {
 	public static function get_by_link($link) {
 		$link = Convert::raw2sql(self::unify_link($link));
 
-		error_log($link);
-
 		// check for an exact match
 		$match = LinkMapping::get()->filter('MappedLink', $link)->first();
-
-		error_log(print_r($match, true));
-
 		if($match) return $match;
 	
 		// check for a match with the same get vars in a different order
