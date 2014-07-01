@@ -7,24 +7,27 @@
  */
 class LinkMapping extends DataObject {
 
-	public static $db = array(
+	// Define the redirect page through DB fields if the CMS module doesn't exist.
+
+	private static $db = array(
 		'MappedLink'   => 'Varchar(255)',
-		'RedirectType' => 'Enum("Page, Link", "Page")',
-		'RedirectLink' => 'Varchar(255)'
+		'RedirectType' => 'Enum("Page, Link", "Link")',
+		'RedirectLink' => 'Varchar(255)',
+		'RedirectPageID' => 'Int'
 	);
 
-	public static $has_one = array(
-		'RedirectPage' => 'SiteTree'
-	);
-
-	public static $summary_fields = array(
+	private static $summary_fields = array(
 		'MappedLink',
 		'RedirectType',
-		'RedirectLink',
-		'RedirectPage.Title'
+		'RedirectPageTitle',
+		'RedirectLink'
 	);
 
-	public static $searchable_fields = array(
+	private static $field_labels = array(
+		'RedirectPageTitle' => 'Redirect Page Title'
+	);
+
+	private static $searchable_fields = array(
 		'MappedLink'   => array('filter' => 'PartialMatchFilter'),
 		'RedirectType' => array('filter' => 'ExactMatchFilter')
 	);
@@ -52,10 +55,12 @@ class LinkMapping extends DataObject {
 			if($matches->count()){
 				foreach ($matches as $match) {
 					$matchQueryString = explode('?', $match->MappedLink);
-					parse_str($matchQueryString[1], $matchParams); 
-					if($matchParams == $queryParams){
-						return $match;
-					}		
+					if(count($matchQueryString) > 1) {
+						parse_str($matchQueryString[1], $matchParams);
+						if($matchParams == $queryParams){
+							return $match;
+						}
+					}
 				}
 			}
 
@@ -83,16 +88,20 @@ class LinkMapping extends DataObject {
 			'MappedLinkHeader', $this->fieldLabel('MappedLinkHeader')
 		), 'MappedLink');
 
-		$pageLabel = $this->fieldLabel('RedirectToPage');
-		$linkLabel = $this->fieldLabel('RedirectToLink');
-
 		$fields->addFieldToTab('Root.Main', new HeaderField(
 			'RedirectToHeader', $this->fieldLabel('RedirectToHeader')
 		));
-		$fields->addFieldToTab('Root.Main', new SelectionGroup('RedirectType', array(
-			"Page//$pageLabel" => new TreeDropdownField('RedirectPageID', '', 'Page'),
-			"Link//$linkLabel" => new TextField('RedirectLink', '')
-		)));
+		if(ClassInfo::exists('SiteTree')) {
+			$pageLabel = $this->fieldLabel('RedirectToPage');
+			$linkLabel = $this->fieldLabel('RedirectToLink');
+			$fields->addFieldToTab('Root.Main', new SelectionGroup('RedirectType', array(
+				"Page//$pageLabel" => new TreeDropdownField('RedirectPageID', '', 'Page'),
+				"Link//$linkLabel" => new TextField('RedirectLink', '')
+			)));
+		}
+		else {
+			$fields->addFieldToTab('Root.Main', new TextField('RedirectLink'));
+		}
 
 		return $fields;
 	}
@@ -111,11 +120,32 @@ class LinkMapping extends DataObject {
 	 * @return string
 	 */
 	public function getLink() {
-		if ($this->RedirectType == 'Page' && $this->RedirectPageID) {
-			return $this->RedirectPage()->Link();
+
+		if ($page = $this->getRedirectPage()) {
+			return $page->Link();
 		} else {
 			return Controller::join_links(Director::baseURL(), $this->RedirectLink);
 		}
+	}
+
+
+	/**
+	 * Retrieve the redirect page associated with this link mapping (where applicable).
+	 * @return SiteTree
+	 */
+	public function getRedirectPage() {
+
+		return ($this->RedirectType == 'Page' && $this->RedirectPageID) ? SiteTree::get_by_id('SiteTree', $this->RedirectPageID) : null;
+	}
+
+	/**
+	 * Retrieve the redirect page title associated with this link mapping (where applicable).
+	 * @return string
+	 */
+	public function getRedirectPageTitle() {
+
+		$page = $this->getRedirectPage();
+		return $page ? $page->Title : '-';
 	}
 
 }

@@ -7,8 +7,8 @@
  */
 class LinkMappingAdmin extends ModelAdmin {
 
-	public static $menu_title = 'Link Mappings';
-	public static $url_segment = 'link-mappings';
-	public static $managed_models = 'LinkMapping';
+	private static $menu_title = 'Link Mappings';
+	private static $url_segment = 'link-mappings';
+	private static $managed_models = 'LinkMapping';
 
 }
