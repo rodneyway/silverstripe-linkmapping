@@ -32,6 +32,13 @@ class LinkMapping extends DataObject {
 		'RedirectType' => array('filter' => 'ExactMatchFilter')
 	);
 
+	// Make sure a link mapping with a query string is returned first.
+
+	private static $default_sort = array(
+		'MappedLink' => 'DESC',
+		'ID' => 'DESC'
+	);
+
 	/**
 	 * Returns a link mapping for a link if one exists.
 	 *
@@ -39,7 +46,7 @@ class LinkMapping extends DataObject {
 	 * @return LinkMapping
 	 */
 	public static function get_by_link($link) {
-		$link = Convert::raw2sql(self::unify_link($link));
+		$link = self::unify_link($link);
 
 		// check for an exact match
 		$match = LinkMapping::get()->filter('MappedLink', $link)->first();
@@ -48,18 +55,27 @@ class LinkMapping extends DataObject {
 		// check for a match with the same get vars in a different order
 		if(strpos($link, '?')){
 			$linkParts 		= explode('?', $link);
-			$url 			= $linkParts[0];
-			$matches		= LinkMapping::get()->where("MappedLink like '$url%'");
-			parse_str($linkParts[1], $queryParams);			
+			$url 			= Convert::raw2sql($linkParts[0]);
+
+			// Retrieve the matching link mappings, ordered by query string (with newest given priority).
+
+			$matches = LinkMapping::get()->where("(MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%')");
+			parse_str($linkParts[1], $queryParams);
 
 			if($matches->count()){
 				foreach ($matches as $match) {
 					$matchQueryString = explode('?', $match->MappedLink);
 					if(count($matchQueryString) > 1) {
 						parse_str($matchQueryString[1], $matchParams);
+
+						// Make sure each URL parameter matches against the link mapping.
+
 						if($matchParams == $queryParams){
 							return $match;
 						}
+					}
+					else {
+						return $match;
 					}
 				}
 			}
