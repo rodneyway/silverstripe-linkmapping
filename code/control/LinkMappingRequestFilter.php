@@ -30,7 +30,14 @@ class LinkMappingRequestFilter implements RequestFilter {
 
 			$map = LinkMapping::get_by_link($link);
 			if($map) {
-				$response->redirect($map->getLink(), 301);
+
+				// Update the redirect response code appropriately.
+
+				$responseCode = (int)$map->ResponseCode;
+				if(($responseCode === 303) && $map->ForwardPOSTRequest) {
+					$responseCode = 307;
+				}
+				$response->redirect($map->getLink(), $responseCode);
 			}
 		}
 		return true;

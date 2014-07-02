@@ -11,9 +11,11 @@ class LinkMapping extends DataObject {
 
 	private static $db = array(
 		'MappedLink'   => 'Varchar(255)',
-		'RedirectType' => 'Enum("Page, Link", "Link")',
+		'RedirectType' => "Enum('Page, Link', 'Link')",
 		'RedirectLink' => 'Varchar(255)',
-		'RedirectPageID' => 'Int'
+		'RedirectPageID' => 'Int',
+		'ResponseCode' => "Enum('301, 303', '303')",
+		'ForwardPOSTRequest' => 'Boolean'
 	);
 
 	private static $summary_fields = array(
@@ -35,7 +37,6 @@ class LinkMapping extends DataObject {
 	// Make sure a link mapping with a query string is returned first.
 
 	private static $default_sort = array(
-		'MappedLink' => 'DESC',
 		'ID' => 'DESC'
 	);
 
@@ -46,11 +47,13 @@ class LinkMapping extends DataObject {
 	 * @return LinkMapping
 	 */
 	public static function get_by_link($link) {
-		$link = self::unify_link($link);
+		$link = self::unify_link(Director::makeRelative($link));
 
 		// check for an exact match
 		$match = LinkMapping::get()->filter('MappedLink', $link)->first();
-		if($match) return $match;
+		if($match) {
+			return $match;
+		}
 	
 		// check for a match with the same get vars in a different order
 		if(strpos($link, '?')){
@@ -59,7 +62,7 @@ class LinkMapping extends DataObject {
 
 			// Retrieve the matching link mappings, ordered by query string (with newest given priority).
 
-			$matches = LinkMapping::get()->where("(MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%')");
+			$matches = LinkMapping::get()->where("(MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%')")->sort(array('MappedLink' => 'DESC', 'ID' => 'DESC'));
 			parse_str($linkParts[1], $queryParams);
 
 			if($matches->count()){
@@ -79,8 +82,8 @@ class LinkMapping extends DataObject {
 					}
 				}
 			}
-
 		}
+		return null;
 	}
 
 	/**
@@ -90,7 +93,7 @@ class LinkMapping extends DataObject {
 	 * @return string
 	 */
 	public static function unify_link($link) {
-		return strtolower(trim(trim(Director::makeRelative($link), '/'), '?'));
+		return strtolower(trim($link, '/?'));
 	}
 
 	public function getCMSFields() {
@@ -119,7 +122,28 @@ class LinkMapping extends DataObject {
 			$fields->addFieldToTab('Root.Main', new TextField('RedirectLink'));
 		}
 
+		// Allow the user to select and customise the redirect response code.
+
+		$responseCodes = array(
+			301 => '301: ' . _t('LinkMapping.RESPONSECODE.301', 'Moved Permanently'),
+			303 => '303: ' . _t('LinkMapping.RESPONSECODE.303', 'See Other')
+		);
+		$fields->addFieldToTab('Root.Main', new DropdownField('ResponseCode', _t('LinkMapping.RESPONSECODE', 'Response Code'), $responseCodes));
+		$fields->addFieldToTab('Root.Main', new CheckboxField('ForwardPOSTRequest', _t('LinkMapping.FORWARDPOSTREQUEST', 'Forward POST Request')));
+
 		return $fields;
+	}
+
+	public function onBeforeWrite() {
+
+		parent::onBeforeWrite();
+		$this->MappedLink = self::unify_link($this->MappedLink);
+
+		// Make sure an external link has been written correctly, otherwise it'll be treated as relative.
+
+		if((substr($this->RedirectLink, 0, 4) !== 'http') && (substr($this->RedirectLink, 0, 2) !== '//') && strpos($this->RedirectLink, '.com') !== false) {
+			$this->RedirectLink = "//{$this->RedirectLink}";
+		}
 	}
 
 	public function fieldLabels($includerelations = true) {
@@ -140,7 +164,7 @@ class LinkMapping extends DataObject {
 		if ($page = $this->getRedirectPage()) {
 			return $page->Link();
 		} else {
-			return Controller::join_links(Director::baseURL(), $this->RedirectLink);
+			return $this->RedirectLink;
 		}
 	}
 
