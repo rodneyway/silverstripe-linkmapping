@@ -1,5 +1,0 @@
-en:
-  LinkMapping:
-    RESPONSECODE.301: 'Permanent Redirect (Cached)'
-    RESPONSECODE.303: 'Temporary Redirect'
-    RESPONSECODE.307: 'Temporary Redirect and forward POST requests'

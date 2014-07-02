@@ -14,7 +14,7 @@ class LinkMapping extends DataObject {
 		'RedirectType' => "Enum('Page, Link', 'Link')",
 		'RedirectLink' => 'Varchar(255)',
 		'RedirectPageID' => 'Int',
-		'ResponseCode' => "Enum('301, 303', '303')",
+		'ResponseCode' => 'Int',
 		'ForwardPOSTRequest' => 'Boolean'
 	);
 
@@ -97,39 +97,51 @@ class LinkMapping extends DataObject {
 	}
 
 	public function getCMSFields() {
-		$fields = parent::getCMSFields();
 
+		$fields = parent::getCMSFields();
+		Requirements::css(LINK_MAPPING_PATH . '/css/link-mapping.css');
 		$fields->removeByName('RedirectType');
 		$fields->removeByName('RedirectLink');
 		$fields->removeByName('RedirectPageID');
+		$fields->removeByName('ResponseCode');
+		$fields->removeByName('ForwardPOSTRequest');
 
-		$fields->insertBefore(new HeaderField(
+		$fields->insertBefore(HeaderField::create(
 			'MappedLinkHeader', $this->fieldLabel('MappedLinkHeader')
 		), 'MappedLink');
 
-		$fields->addFieldToTab('Root.Main', new HeaderField(
+		$fields->addFieldToTab('Root.Main', HeaderField::create(
 			'RedirectToHeader', $this->fieldLabel('RedirectToHeader')
 		));
+
+		// Collate the redirect settings into a single grouping.
+
+		$redirect = FieldGroup::create()->addExtraClass('redirect-link');
 		if(ClassInfo::exists('SiteTree')) {
 			$pageLabel = $this->fieldLabel('RedirectToPage');
 			$linkLabel = $this->fieldLabel('RedirectToLink');
-			$fields->addFieldToTab('Root.Main', new SelectionGroup('RedirectType', array(
-				"Page//$pageLabel" => new TreeDropdownField('RedirectPageID', '', 'Page'),
-				"Link//$linkLabel" => new TextField('RedirectLink', '')
-			)));
+			$fields->addFieldToTab('Root.Main', SelectionGroup::create('RedirectType', array(
+				"Page//$pageLabel" => TreeDropdownField::create('RedirectPageID', '', 'Page'),
+				"Link//$linkLabel" => $redirect
+			))->addExtraClass('field redirect'));
+			$redirect->push($redirectLink = TextField::create('RedirectLink', ''));
 		}
 		else {
-			$fields->addFieldToTab('Root.Main', new TextField('RedirectLink'));
+			$redirect->setTitle(_t('LinkMapping.REDIRECTLINK', 'Redirect Link'));
+			$fields->addFieldToTab('Root.Main', $redirect);
+			$redirect->push($redirectLink = TextField::create('RedirectLink', ''));
 		}
+		$redirect->push(CheckboxField::create('ValidateExternalURL'));
+		$redirectLink->setRightTitle('External URLs will require the protocol explicitly defined');
 
-		// Allow the user to select and customise the redirect response code.
+		// Collate the response settings into a single grouping.
 
-		$responseCodes = array(
-			301 => '301: ' . _t('LinkMapping.RESPONSECODE.301', 'Moved Permanently'),
-			303 => '303: ' . _t('LinkMapping.RESPONSECODE.303', 'See Other')
-		);
-		$fields->addFieldToTab('Root.Main', new DropdownField('ResponseCode', _t('LinkMapping.RESPONSECODE', 'Response Code'), $responseCodes));
-		$fields->addFieldToTab('Root.Main', new CheckboxField('ForwardPOSTRequest', _t('LinkMapping.FORWARDPOSTREQUEST', 'Forward POST Request')));
+		$responseCodes = Config::inst()->get($this->class, 'response_codes');
+		$response = FieldGroup::create(
+			DropdownField::create('ResponseCode', '', $responseCodes),
+			CheckboxField::create('ForwardPOSTRequest', _t('LinkMapping.FORWARDPOSTREQUEST', 'Forward POST Request'))
+		)->setTitle(_t('LinkMapping.RESPONSECODE', 'Response Code'))->addExtraClass('response');
+		$fields->addFieldToTab('Root.Main', $response);
 
 		return $fields;
 	}
@@ -138,21 +150,30 @@ class LinkMapping extends DataObject {
 
 		parent::onBeforeWrite();
 		$this->MappedLink = self::unify_link($this->MappedLink);
+	}
 
-		// Make sure an external link has been written correctly, otherwise it'll be treated as relative.
+	public function validate() {
 
-		if((substr($this->RedirectLink, 0, 4) !== 'http') && (substr($this->RedirectLink, 0, 2) !== '//') && strpos($this->RedirectLink, '.com') !== false) {
-			$this->RedirectLink = "//{$this->RedirectLink}";
+		$result = parent::validate();
+		if($this->RedirectLink) {
+
+			// The following validation translation comes from: https://gist.github.com/dperini/729294 and http://mathiasbynens.be/demo/url-regex
+
+			$this->RedirectLink = trim($this->RedirectLink, '!"#$%&\'()*+,-./@:;<=>[\\]^_`{|}~');
+			preg_match('%^(?:(?:https?|ftp)://)(?:\S+(?::\S*)?@|\d{1,3}(?:\.\d{1,3}){3}|(?:(?:[a-z\d\x{00a1}-\x{ffff}]+-?)*[a-z\d\x{00a1}-\x{ffff}]+)(?:\.(?:[a-z\d\x{00a1}-\x{ffff}]+-?)*[a-z\d\x{00a1}-\x{ffff}]+)*(?:\.[a-z\x{00a1}-\x{ffff}]{2,6}))(?::\d+)?(?:[^\s]*)?$%iu', $this->RedirectLink) ?
+				$result->valid() :
+				$result->error('External URL validation failed!');
 		}
+		return $result;
 	}
 
 	public function fieldLabels($includerelations = true) {
 		return parent::fieldLabels($includerelations) + array(
 			'MappedLinkHeader' => _t('LinkMapping.MAPPEDLINK', 'Mapped Link'),
 			'RedirectToHeader' => _t('LinkMapping.REDIRECTTO', 'Redirect To'),
-			'RedirectionType'  => _t('LinkMapping.REDIRECTIONTYPE', 'Redirection type'),
-			'RedirectToPage'   => _t('LinkMapping.REDIRTOPAGE', 'Redirect to a page'),
-			'RedirectToLink'   => _t('LinkMapping.REDIRTOLINK', 'Redirect to a link')
+			'RedirectionType'  => _t('LinkMapping.REDIRECTIONTYPE', 'Redirection Type'),
+			'RedirectToPage'   => _t('LinkMapping.REDIRTOPAGE', 'Redirect to a Page'),
+			'RedirectToLink'   => _t('LinkMapping.REDIRTOLINK', 'Redirect to a Link')
 		);
 	}
 

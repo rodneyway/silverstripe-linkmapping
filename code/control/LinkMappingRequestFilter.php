@@ -33,7 +33,10 @@ class LinkMappingRequestFilter implements RequestFilter {
 
 				// Update the redirect response code appropriately.
 
-				$responseCode = (int)$map->ResponseCode;
+				$responseCode = $map->ResponseCode;
+				if(($responseCode === 301) && $map->ForwardPOSTRequest) {
+					$responseCode = 308;
+				}
 				if(($responseCode === 303) && $map->ForwardPOSTRequest) {
 					$responseCode = 307;
 				}
