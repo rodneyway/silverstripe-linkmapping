@@ -19,14 +19,19 @@ class LinkMapping extends DataObject {
 		'Priority' => 'Int'
 	);
 
+	private static $defaults = array(
+		'ResponseCode' => 303
+	);
+
 	private static $summary_fields = array(
 		'MappedLink',
 		'RedirectType',
-		'RedirectPageTitle',
-		'RedirectLink'
+		'RedirectPageLink',
+		'RedirectPageTitle'
 	);
 
 	private static $field_labels = array(
+		'RedirectPageLink' => 'Redirect Link',
 		'RedirectPageTitle' => 'Redirect Page Title'
 	);
 
@@ -38,7 +43,6 @@ class LinkMapping extends DataObject {
 	// Make sure a link mapping with a query string is returned first.
 
 	private static $default_sort = array(
-		'Priority' => 'DESC',
 		'ID' => 'DESC'
 	);
 
@@ -215,6 +219,16 @@ class LinkMapping extends DataObject {
 	public function getRedirectPage() {
 
 		return ($this->RedirectType == 'Page' && $this->RedirectPageID) ? SiteTree::get_by_id('SiteTree', $this->RedirectPageID) : null;
+	}
+
+	/**
+	 * Retrieve the redirect page link associated with this link mapping.
+	 * @return string
+	 */
+	public function getRedirectPageLink() {
+
+		$page = $this->getRedirectPage();
+		return $page ? $page->Link() : $this->RedirectLink;
 	}
 
 	/**

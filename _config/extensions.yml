@@ -1,0 +1,6 @@
+---
+Name: extensions
+---
+SiteTree:
+  extensions:
+    - 'SiteTreeLinkMappingExtension'

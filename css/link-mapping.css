@@ -20,11 +20,16 @@ div.response div.fieldgroup-field {
 	padding: 0 !important;
 }
 
+ul.redirect > li label,
 div.redirect-link div.fieldgroup-field input,
 div.redirect-link div.fieldgroup-field label,
 div.response div.fieldgroup-field input,
 div.response div.fieldgroup-field label {
 	vertical-align: middle;
+}
+
+ul.redirect > li input {
+	margin-top: 2px;
 }
 
 div.redirect-link div.fieldgroup-field input,
