@@ -49,6 +49,7 @@ class LinkMapping extends DataObject {
 	 * @return LinkMapping
 	 */
 	public static function get_by_link($link) {
+
 		$link = self::unify_link(Director::makeRelative($link));
 
 		// check for an exact match
@@ -166,6 +167,7 @@ class LinkMapping extends DataObject {
 
 		parent::onBeforeWrite();
 		$this->MappedLink = self::unify_link($this->MappedLink);
+		$this->RedirectLink = self::unify_link($this->RedirectLink);
 	}
 
 	public function validate() {

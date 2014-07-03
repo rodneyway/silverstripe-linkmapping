@@ -8,6 +8,8 @@
 
 class LinkMappingRequestFilter implements RequestFilter {
 
+	private static $maximum_requests = 10;
+
 	public function preRequest(SS_HTTPRequest $request, Session $session, DataModel $model) {
 
 		return true;
@@ -19,12 +21,10 @@ class LinkMappingRequestFilter implements RequestFilter {
 
 		if($response->getStatusCode() === 404) {
 
-			// Clean up the URL.
+			// Clean up the URL, making sure an external URL comes through correctly.
 
-			$link = $request->getURL();
-			if(count($request->getVars()) > 1) {
-				$link = $link . str_replace('url=' . $request->requestVar('url') . '&', '?', $_SERVER['QUERY_STRING']);
-			}
+			$link = $request->getURL(true);
+			$link = str_replace(':/', '://', $link);
 
 			// Retrieve and redirect towards a link mapping where the URL matches.
 
@@ -40,7 +40,27 @@ class LinkMappingRequestFilter implements RequestFilter {
 				if(($responseCode === 303) && $map->ForwardPOSTRequest) {
 					$responseCode = 307;
 				}
-				$response->redirect($map->getLink(), $responseCode);
+
+				// Enforce a maximum number of redirects, preventing inefficient link mappings and infinite recursion.
+
+				$counter = 1;
+				$redirect = $map->getLink();
+				while($next = LinkMapping::get_by_link($redirect)) {
+					if($counter === self::$maximum_requests) {
+						return true;
+					}
+					$counter++;
+					$redirect = $next->getLink();
+				}
+
+				// Trigger the redirect now that we're at the end of the link mapping chain.
+
+				$response->redirect($redirect, $responseCode);
+			}
+			else {
+
+				// Trigger any 404 fallbacks.
+
 			}
 		}
 		return true;
