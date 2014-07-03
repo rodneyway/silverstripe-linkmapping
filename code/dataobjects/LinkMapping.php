@@ -15,7 +15,8 @@ class LinkMapping extends DataObject {
 		'RedirectLink' => 'Varchar(255)',
 		'RedirectPageID' => 'Int',
 		'ResponseCode' => 'Int',
-		'ForwardPOSTRequest' => 'Boolean'
+		'ForwardPOSTRequest' => 'Boolean',
+		'Priority' => 'Int'
 	);
 
 	private static $summary_fields = array(
@@ -37,6 +38,7 @@ class LinkMapping extends DataObject {
 	// Make sure a link mapping with a query string is returned first.
 
 	private static $default_sort = array(
+		'Priority' => 'DESC',
 		'ID' => 'DESC'
 	);
 
@@ -60,9 +62,15 @@ class LinkMapping extends DataObject {
 			$linkParts 		= explode('?', $link);
 			$url 			= Convert::raw2sql($linkParts[0]);
 
-			// Retrieve the matching link mappings, ordered by query string (with newest given priority).
+			// Retrieve the matching link mappings, ordered by query string and priority.
 
-			$matches = LinkMapping::get()->where("(MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%')")->sort(array('MappedLink' => 'DESC', 'ID' => 'DESC'));
+			$matches = LinkMapping::get()->where(
+				"(MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%')"
+			)->sort(array(
+				'MappedLink' => 'DESC',
+				'Priority' => 'DESC',
+				'ID' => 'DESC'
+			));
 			parse_str($linkParts[1], $queryParams);
 
 			if($matches->count()){
@@ -105,11 +113,19 @@ class LinkMapping extends DataObject {
 		$fields->removeByName('RedirectPageID');
 		$fields->removeByName('ResponseCode');
 		$fields->removeByName('ForwardPOSTRequest');
+		$fields->removeByName('Priority');
 
 		$fields->insertBefore(HeaderField::create(
 			'MappedLinkHeader', $this->fieldLabel('MappedLinkHeader')
 		), 'MappedLink');
 
+		// Generate the link mapping priority selection from 1 - 10.
+
+		$range = array();
+		for($i = 1; $i <= 10; $i++) {
+			$range[$i] = $i;
+		}
+		$fields->addFieldToTab('Root.Main', DropdownField::create('Priority', _t('LinkMapping.PRIORITY', 'Priority'), $range));
 		$fields->addFieldToTab('Root.Main', HeaderField::create(
 			'RedirectToHeader', $this->fieldLabel('RedirectToHeader')
 		));
@@ -155,7 +171,7 @@ class LinkMapping extends DataObject {
 	public function validate() {
 
 		$result = parent::validate();
-		if($this->RedirectLink) {
+		if($this->ValidateExternalURL && $this->RedirectLink) {
 
 			// The following validation translation comes from: https://gist.github.com/dperini/729294 and http://mathiasbynens.be/demo/url-regex
 
