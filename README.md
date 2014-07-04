@@ -24,7 +24,7 @@ LinkMappingRequestFilter:
   replace_default: false
 ```
 
-When a certain depth of link mappings has been reached, the server will return with a 404 response. The following is the default configuration:
+When a certain depth of link mappings has been reached, the server will return with a 404 response to prevent inefficient mappings or infinite recursion. The following is the default configuration:
 
 ```yml
 LinkMappingRequestFilter:
@@ -37,9 +37,9 @@ It is also possible to customise the listing of response codes, where the defaul
 
 #### Priority
 
-When multiple link mappings end up being matched, the one to be used is determined based on a priority field and how specific the definition may be.
+When multiple link mappings end up being matched, the one to be used is determined based on a priority field and how specific the definition is.
 
-### Automatic Creation
+#### Automatic Creation
 
 When the URL segment of a site tree element has been updated, a link mapping will automatically be created. This functionality will be removed as soon as you enable SilverStripe's default automated URL handling (as it will no longer be required).
 
