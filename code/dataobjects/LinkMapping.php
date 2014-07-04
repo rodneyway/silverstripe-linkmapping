@@ -26,6 +26,7 @@ class LinkMapping extends DataObject {
 	private static $summary_fields = array(
 		'MappedLink',
 		'RedirectType',
+		'Stage',
 		'RedirectPageLink',
 		'RedirectPageTitle'
 	);
@@ -55,33 +56,34 @@ class LinkMapping extends DataObject {
 	public static function get_by_link($link) {
 
 		$link = self::unify_link(Director::makeRelative($link));
+		$linkParts = explode('?', $link);
+		$url = Convert::raw2sql($linkParts[0]);
 
-		// check for an exact match
-		$match = LinkMapping::get()->filter('MappedLink', $link)->first();
-		if($match) {
-			return $match;
-		}
-	
-		// check for a match with the same get vars in a different order
-		if(strpos($link, '?')){
-			$linkParts 		= explode('?', $link);
-			$url 			= Convert::raw2sql($linkParts[0]);
+		// Retrieve the matching link mappings, ordered by query string and priority.
 
-			// Retrieve the matching link mappings, ordered by query string and priority.
-
-			$matches = LinkMapping::get()->where(
-				"(MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%')"
-			)->sort(array(
-				'MappedLink' => 'DESC',
-				'Priority' => 'DESC',
-				'ID' => 'DESC'
-			));
+		$matches = LinkMapping::get()->where(
+			"(MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%')"
+		)->sort(array(
+			'MappedLink' => 'DESC',
+			'Priority' => 'DESC',
+			'ID' => 'DESC'
+		));
+		$queryParams = array();
+		if(isset($linkParts[1])) {
 			parse_str($linkParts[1], $queryParams);
+		}
+		if($matches->count()) {
+			foreach($matches as $match) {
 
-			if($matches->count()){
-				foreach ($matches as $match) {
+				// Make sure the link mapping matches the current stage.
+
+				if($match->getStage() !== 'Stage') {
+
+					// Check for a match with the same GET variables in any order.
+
 					$matchQueryString = explode('?', $match->MappedLink);
-					if(count($matchQueryString) > 1) {
+					if(isset($matchQueryString[1])) {
+						$matchParams = array();
 						parse_str($matchQueryString[1], $matchParams);
 
 						// Make sure each URL parameter matches against the link mapping.
@@ -91,6 +93,9 @@ class LinkMapping extends DataObject {
 						}
 					}
 					else {
+
+						// Otherwise return the first link mapping which matches the current stage.
+
 						return $match;
 					}
 				}
@@ -218,7 +223,17 @@ class LinkMapping extends DataObject {
 	 */
 	public function getRedirectPage() {
 
-		return ($this->RedirectType == 'Page' && $this->RedirectPageID) ? SiteTree::get_by_id('SiteTree', $this->RedirectPageID) : null;
+		return ($this->RedirectType == 'Page' && $this->RedirectPageID && ClassInfo::exists('SiteTree')) ? SiteTree::get_by_id('SiteTree', $this->RedirectPageID) : null;
+	}
+
+	/**
+	 * Retrieve the stage of this link mapping for clarity.
+	 * @return string
+	 */
+	public function getStage() {
+
+		$page = $this->getRedirectPage();
+		return $page ? ($page->Link() ? 'Live' : 'Stage') : '-';
 	}
 
 	/**
