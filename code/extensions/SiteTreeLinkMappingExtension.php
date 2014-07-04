@@ -10,30 +10,33 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 	public function onAfterWrite() {
 
-		// Make sure that the URL segment has been updated.
+		if(Config::inst()->get('LinkMappingRequestFilter', 'replace_default')) {
 
-		$changed = $this->owner->getChangedFields();
-		if(isset($changed['URLSegment']['before']) && isset($changed['URLSegment']['after']) && ($changed['URLSegment']['before'] != $changed['URLSegment']['after'])) {
+			// Make sure that the URL segment has been updated.
 
-			// Make sure that the link mapping doesn't already exist.
+			$changed = $this->owner->getChangedFields();
+			if(isset($changed['URLSegment']['before']) && isset($changed['URLSegment']['after']) && ($changed['URLSegment']['before'] != $changed['URLSegment']['after'])) {
 
-			$existing = LinkMapping::get()->filter(array(
-				'MappedLink' => $changed['URLSegment']['before'],
-				'RedirectPageID' => $this->owner->ID
-			))->first();
-			if($existing) {
-				return;
+				// Make sure that the link mapping doesn't already exist.
+
+				$existing = LinkMapping::get()->filter(array(
+					'MappedLink' => $changed['URLSegment']['before'],
+					'RedirectPageID' => $this->owner->ID
+				))->first();
+				if($existing) {
+					return;
+				}
+
+				// Create a new link mapping that points from the old URL segment to the site tree element itself.
+
+				$mapping = LinkMapping::create();
+				$mapping->MappedLink = $changed['URLSegment']['before'];
+				$mapping->RedirectType = 'Page';
+				$mapping->RedirectPageID = $this->owner->ID;
+				$mapping->ResponseCode = 303;
+				$mapping->Priority = 1;
+				$mapping->write();
 			}
-
-			// Create a new link mapping that points from the old URL segment to the site tree element itself.
-
-			$mapping = LinkMapping::create();
-			$mapping->MappedLink = $changed['URLSegment']['before'];
-			$mapping->RedirectType = 'Page';
-			$mapping->RedirectPageID = $this->owner->ID;
-			$mapping->ResponseCode = 303;
-			$mapping->Priority = 1;
-			$mapping->write();
 		}
 	}
 
