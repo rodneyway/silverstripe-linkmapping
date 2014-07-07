@@ -75,7 +75,7 @@ class LinkMapping extends DataObject {
 		if($matches->count()) {
 			foreach($matches as $match) {
 
-				// Make sure the link mapping matches the current stage.
+				// Make sure the link mapping matches the current stage, where a staging only link mapping will return 'Live' for only '?stage=Stage'.
 
 				if($match->getStage() !== 'Stage') {
 
@@ -223,17 +223,19 @@ class LinkMapping extends DataObject {
 	 */
 	public function getRedirectPage() {
 
-		return ($this->RedirectType == 'Page' && $this->RedirectPageID && ClassInfo::exists('SiteTree')) ? SiteTree::get_by_id('SiteTree', $this->RedirectPageID) : null;
+		return ($this->RedirectType === 'Page' && $this->RedirectPageID) ? SiteTree::get_by_id('SiteTree', $this->RedirectPageID) : null;
 	}
 
 	/**
-	 * Retrieve the stage of this link mapping for clarity.
+	 * Retrieve the stage of this link mapping.
 	 * @return string
 	 */
 	public function getStage() {
 
-		$page = $this->getRedirectPage();
-		return $page ? ($page->Link() ? 'Live' : 'Stage') : '-';
+		return (($this->RedirectType !== 'Link') && ClassInfo::exists('SiteTree')) ? (
+			$this->getRedirectPage() ?
+				'Live' : 'Stage'
+		) : '-';
 	}
 
 	/**
@@ -243,7 +245,8 @@ class LinkMapping extends DataObject {
 	public function getRedirectPageLink() {
 
 		$page = $this->getRedirectPage();
-		return $page ? $page->Link() : $this->RedirectLink;
+		return ($page && $page->Link()) ?
+			$this->RedirectLink : '-';
 	}
 
 	/**

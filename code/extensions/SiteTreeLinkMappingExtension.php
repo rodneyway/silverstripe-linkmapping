@@ -33,7 +33,6 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 				$mapping->MappedLink = $changed['URLSegment']['before'];
 				$mapping->RedirectType = 'Page';
 				$mapping->RedirectPageID = $this->owner->ID;
-				$mapping->ResponseCode = 303;
 				$mapping->Priority = 1;
 				$mapping->write();
 			}

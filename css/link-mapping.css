@@ -1,7 +1,6 @@
 /* Correcting core layout issues. */
 
 ul.redirect {
-	overflow: auto;
 	padding-bottom: 8px;
 	padding-left: 154px;
 }
