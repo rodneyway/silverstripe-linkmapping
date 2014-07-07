@@ -10,6 +10,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 	public function onAfterWrite() {
 
+		parent::onAfterWrite();
 		if(Config::inst()->get('LinkMappingRequestFilter', 'replace_default')) {
 
 			// Make sure that the URL segment has been updated.
@@ -36,6 +37,23 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 				$mapping->Priority = 1;
 				$mapping->write();
 			}
+		}
+	}
+
+	public function onAfterDelete() {
+
+		parent::onAfterDelete();
+
+		// When this site tree element has been removed from both staging and live.
+
+		if($this->owner->getIsDeletedFromStage() && !$this->owner->isPublished()) {
+
+			// Remove any link mappings that are directly associated with this page.
+
+			LinkMapping::get()->filter(array(
+				'RedirectType' => 'Page',
+				'RedirectPageID' => $this->owner->ID
+			))->removeAll();
 		}
 	}
 
