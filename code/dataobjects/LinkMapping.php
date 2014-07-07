@@ -10,6 +10,7 @@ class LinkMapping extends DataObject {
 	// Define the redirect page through DB fields if the CMS module doesn't exist.
 
 	private static $db = array(
+		'LinkType' => "Enum('Simple, Regular Expression', 'Simple')",
 		'MappedLink'   => 'Varchar(255)',
 		'RedirectType' => "Enum('Page, Link', 'Link')",
 		'RedirectLink' => 'Varchar(255)',
@@ -127,7 +128,7 @@ class LinkMapping extends DataObject {
 
 		$fields->insertBefore(HeaderField::create(
 			'MappedLinkHeader', $this->fieldLabel('MappedLinkHeader')
-		), 'MappedLink');
+		), 'LinkType');
 
 		// Generate the link mapping priority selection from 1 - 10.
 

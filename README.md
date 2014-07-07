@@ -1,6 +1,6 @@
 # SilverStripe Link Mapping
 
-This module will allow you to set up simple/regex link redirection mappings and customisation, either replacing the default automated URL handling or hooking into a page not found. This is useful for something such as legacy page redirection.
+This module will allow you to set up simple/regular expression link redirection mappings and customisation, either replacing the default automated URL handling or hooking into a page not found. This is useful for something such as legacy page redirection.
 
 ## Requirements
 
