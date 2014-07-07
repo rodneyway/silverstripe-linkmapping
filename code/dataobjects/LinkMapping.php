@@ -244,9 +244,10 @@ class LinkMapping extends DataObject {
 	 */
 	public function getRedirectPageLink() {
 
-		$page = $this->getRedirectPage();
-		return ($page && $page->Link()) ?
-			$this->RedirectLink : '-';
+		return (($this->RedirectType !== 'Link') && ClassInfo::exists('SiteTree')) ? (
+			(($page = $this->getRedirectPage()) && $page->Link()) ?
+				$page->Link() : '-'
+		) : ($this->RedirectLink ? $this->RedirectLink : '-');
 	}
 
 	/**
@@ -256,7 +257,8 @@ class LinkMapping extends DataObject {
 	public function getRedirectPageTitle() {
 
 		$page = $this->getRedirectPage();
-		return $page ? $page->Title : '-';
+		return $page ?
+			$page->Title : '-';
 	}
 
 }
