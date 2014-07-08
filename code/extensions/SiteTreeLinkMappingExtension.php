@@ -16,9 +16,8 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 			// Make sure that the URL segment or parent ID has been updated.
 
 			$changed = $this->owner->getChangedFields();
-			$moved = null;
 			if((isset($changed['URLSegment']['before']) && isset($changed['URLSegment']['after']) && ($changed['URLSegment']['before'] != $changed['URLSegment']['after']))
-				|| ($moved = (isset($changed['ParentID']['before']) && isset($changed['ParentID']['after']) && ($changed['ParentID']['before'] != $changed['ParentID']['after'])))) {
+				|| (isset($changed['ParentID']['before']) && isset($changed['ParentID']['after']) && ($changed['ParentID']['before'] != $changed['ParentID']['after']))) {
 
 				// Construct the URL to be used for the link mapping.
 
@@ -36,11 +35,9 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 				// Recursively create link mappings for any children of this site tree element.
 
-				if($moved) {
-					$children = $this->owner->AllChildrenIncludingDeleted();
-					if($children->count()) {
-						$this->recursiveLinkMapping($URLsegment, $children);
-					}
+				$children = $this->owner->AllChildrenIncludingDeleted();
+				if($children->count()) {
+					$this->recursiveLinkMapping($URLsegment, $children);
 				}
 			}
 		}
