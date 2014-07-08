@@ -60,15 +60,39 @@ class LinkMapping extends DataObject {
 		$linkParts = explode('?', $link);
 		$url = Convert::raw2sql($linkParts[0]);
 
-		// Retrieve the matching link mappings, ordered by query string and priority.
+		// Retrieve the link mappings, ordered by query string and priority.
 
-		$matches = LinkMapping::get()->where(
-			"(MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%')"
-		)->sort(array(
+		$matches = LinkMapping::get()->sort(array(
 			'MappedLink' => 'DESC',
 			'Priority' => 'DESC',
 			'ID' => 'DESC'
 		));
+
+		// Retrieve the matching link mappings depending on the database connection type.
+
+		if(get_class(DB::getConn()) === 'MySQLDatabase') {
+
+			// Filter the link mappings from a database level (currently only limited to MySQL due to the syntax/support).
+
+			$matches = $matches->where(
+				"((LinkType = 'Simple') AND ((MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%'))) OR ((LinkType = 'Regular Expression') AND ('{$url}' REGEXP MappedLink))"
+			);
+		}
+		else {
+
+			// Filter the link mappings manually.
+
+			$filtered = ArrayList::create();
+			foreach($matches as $match) {
+				if((($match->LinkType === 'Simple') && (($match->MappedLink === $url) || (strpos($match->MappedLink, "{$url}?") === 0))) || (($match->LinkType === 'Regular Expression') && (preg_match("~{$match->MappedLink}~", $url)))) {
+					$filtered->push($match);
+				}
+			}
+			$matches = $filtered;
+		}
+
+		// Determine which link mapping should be returned.
+
 		$queryParams = array();
 		if(isset($linkParts[1])) {
 			parse_str($linkParts[1], $queryParams);
