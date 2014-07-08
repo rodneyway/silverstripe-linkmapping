@@ -28,7 +28,7 @@ class LinkMappingRequestFilter implements RequestFilter {
 
 			// Update the redirect response code appropriately.
 
-			$responseCode = $map->ResponseCode;
+			$responseCode = (int)$map->ResponseCode;
 			if($responseCode === 0) {
 				$responseCode = 303;
 			}
