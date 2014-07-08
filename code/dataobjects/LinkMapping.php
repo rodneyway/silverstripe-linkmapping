@@ -48,6 +48,15 @@ class LinkMapping extends DataObject {
 		'ID' => 'DESC'
 	);
 
+	// Use the initial request URL for a redirect link regular expression replacement.
+
+	private $matchedURL;
+
+	public function setMatchedURL($matchedURL) {
+
+		$this->matchedURL = $matchedURL;
+	}
+
 	/**
 	 * Returns a link mapping for a link if one exists.
 	 *
@@ -70,7 +79,7 @@ class LinkMapping extends DataObject {
 
 		// Retrieve the matching link mappings depending on the database connection type.
 
-		if(get_class(DB::getConn()) === 'MySQLDatabase') {
+		if(DB::getConn() instanceof MySQLDatabase) {
 
 			// Filter the link mappings from a database level (currently only limited to MySQL due to the syntax/support).
 
@@ -84,7 +93,7 @@ class LinkMapping extends DataObject {
 
 			$filtered = ArrayList::create();
 			foreach($matches as $match) {
-				if((($match->LinkType === 'Simple') && (($match->MappedLink === $url) || (strpos($match->MappedLink, "{$url}?") === 0))) || (($match->LinkType === 'Regular Expression') && (preg_match("~{$match->MappedLink}~", $url)))) {
+				if((($match->LinkType === 'Simple') && (($match->MappedLink === $url) || (strpos($match->MappedLink, "{$url}?") === 0))) || (($match->LinkType === 'Regular Expression') && (preg_match("|{$match->MappedLink}|", $url)))) {
 					$filtered->push($match);
 				}
 			}
@@ -114,6 +123,7 @@ class LinkMapping extends DataObject {
 						// Make sure each URL parameter matches against the link mapping.
 
 						if($matchParams == $queryParams){
+							$match->setMatchedURL($linkParts[0]);
 							return $match;
 						}
 					}
@@ -121,6 +131,7 @@ class LinkMapping extends DataObject {
 
 						// Otherwise return the first link mapping which matches the current stage.
 
+						$match->setMatchedURL($linkParts[0]);
 						return $match;
 					}
 				}
@@ -237,7 +248,8 @@ class LinkMapping extends DataObject {
 		if ($page = $this->getRedirectPage()) {
 			return $page->Link();
 		} else {
-			return $this->RedirectLink;
+			return ($this->LinkType === 'Regular Expression') ?
+				preg_replace("|{$this->MappedLink}|i", $this->RedirectLink, $this->matchedURL) : $this->RedirectLink;
 		}
 	}
 

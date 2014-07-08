@@ -25,7 +25,7 @@ class LinkMappingRequestFilter implements RequestFilter {
 		// Allow customisation around whether the default SS automated redirect is replaced, where a page not found (404) will always attempt to trigger a link mapping.
 
 		$status = $response->getStatusCode();
-		if((self::$replace_default || ($status === 404)) && ($map = $this->getLinkMapping($request)) && ($redirect = $this->getRedirectLink($map))) {
+		if((self::$replace_default || ($status === 404)) && ($map = $this->getLinkMapping($request))) {
 
 			// Update the redirect response code appropriately.
 
@@ -42,7 +42,7 @@ class LinkMappingRequestFilter implements RequestFilter {
 
 			// Traverse the link mapping chain and direct the response towards the last.
 
-			$response->redirect($redirect, $responseCode);
+			$response->redirect($map->getLink(), $responseCode);
 		}
 
 		// Trigger any fallbacks.
@@ -64,21 +64,24 @@ class LinkMappingRequestFilter implements RequestFilter {
 		$link = $request->getURL(true);
 		$link = str_replace(':/', '://', $link);
 
-		// Return the appropriate link mapping, otherwise trigger any defined fallbacks.
+		// Retrieve the appropriate link mapping.
 
 		$map = LinkMapping::get_by_link($link);
 		if($map) {
-			return $map;
+
+			// Traverse the link mapping chain and return the final link mapping.
+
+			return $this->getRecursiveLinkMapping($map);
 		}
 		return null;
 	}
 
 	/**
-	 *	Traverse the link mapping chain and return the final redirect link.
+	 *	Traverse the link mapping chain and return the final link mapping.
 	 *	@return string
 	 */
 
-	public function getRedirectLink(LinkMapping $map) {
+	public function getRecursiveLinkMapping(LinkMapping $map) {
 
 		$counter = 1;
 		$redirect = $map->getLink();
@@ -91,8 +94,9 @@ class LinkMappingRequestFilter implements RequestFilter {
 			}
 			$counter++;
 			$redirect = $next->getLink();
+			$map = $next;
 		}
-		return $redirect;
+		return $map;
 	}
 
 }
