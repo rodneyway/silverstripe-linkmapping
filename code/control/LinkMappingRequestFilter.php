@@ -24,7 +24,8 @@ class LinkMappingRequestFilter implements RequestFilter {
 
 		// Allow customisation around whether the default SS automated redirect is replaced, where a page not found (404) will always attempt to trigger a link mapping.
 
-		if((self::$replace_default || ($response->getStatusCode() === 404)) && ($map = $this->getLinkMapping($request)) && ($redirect = $this->getRedirectLink($map))) {
+		$status = $response->getStatusCode();
+		if((self::$replace_default || ($status === 404)) && ($map = $this->getLinkMapping($request)) && ($redirect = $this->getRedirectLink($map))) {
 
 			// Update the redirect response code appropriately.
 
@@ -42,6 +43,11 @@ class LinkMappingRequestFilter implements RequestFilter {
 			// Traverse the link mapping chain and direct the response towards the last.
 
 			$response->redirect($redirect, $responseCode);
+		}
+
+		// Trigger any fallbacks.
+
+		else if($status === 404) {
 		}
 		return true;
 	}
@@ -63,11 +69,6 @@ class LinkMappingRequestFilter implements RequestFilter {
 		$map = LinkMapping::get_by_link($link);
 		if($map) {
 			return $map;
-		}
-		else {
-
-			// Trigger any fallbacks.
-
 		}
 		return null;
 	}
