@@ -40,7 +40,7 @@ class LinkMappingRequestFilter implements RequestFilter {
 				$responseCode = 307;
 			}
 
-			// Traverse the link mapping chain and direct the response towards the last.
+			// Direct the response towards the final link mapping.
 
 			$response->redirect($map->getLink(), $responseCode);
 		}
