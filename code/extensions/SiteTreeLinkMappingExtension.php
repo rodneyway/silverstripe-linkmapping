@@ -7,6 +7,42 @@
  */
 
 class SiteTreeLinkMappingExtension extends DataExtension {
+	
+	private static $db = array(
+		'FallbackRule'		=> 'Varchar',
+		'FallbackUrl'		=> 'Varchar(255)',
+		'FallbackResponse'	=> 'Varchar',
+	);
+	
+	public function updateSettingsFields(\FieldList $fields) {
+		$options = array(
+			'URL'		=> _t('LinkMapping.STRAIGHT_URL', 'Specific URL'),
+			'ThisPage'	=> _t('LinkMapping.THIS_PAGE', 'This Page'),
+			'Nearest'	=> _t('LinkMapping.NEAREST', 'Nearest Parent')
+		);
+		
+		$responseCodes = Config::inst()->get('SS_HTTPResponse', 'status_codes');
+		$wanted = array();
+		foreach ($responseCodes as $code => $desc) {
+			if ($code >= 300 && $code < 400) {
+				$wanted[$code] = $desc;
+			}
+		}
+
+		$info = _t('LinkMapping.FALLBACK_DETAILS', 'Select a method to use for handling any missing child page');
+		$field = DropdownField::create(
+				'FallbackRule', 
+				_t('LinkMapping.FALLBACK_RULE', 'Fallback rule'), 
+				$options
+			)->setRightTitle($info)
+			 ->setHasEmptyDefault(true);
+		
+		$fields->addFieldToTab('Root.LinkMapping', $field);
+		$fields->addFieldToTab('Root.LinkMapping', TextField::create('FallbackUrl', _t('LinkMapping.FALLBACK_URL', 'Fallback url')));
+		
+		$fields->addFieldToTab('Root.LinkMapping', DropdownField::create('FallbackResponse', _t('LinkMapping.FALLBACK_RESPONSE', 'Response code'), $wanted));
+		
+	}
 
 	public function onAfterWrite() {
 
