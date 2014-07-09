@@ -72,8 +72,8 @@ class LinkMapping extends DataObject {
 		// Retrieve the link mappings, ordered by query string and priority.
 
 		$matches = LinkMapping::get()->sort(array(
-			'MappedLink' => 'DESC',
 			'Priority' => 'DESC',
+			'MappedLink' => 'DESC',
 			'ID' => 'DESC'
 		));
 
@@ -81,23 +81,39 @@ class LinkMapping extends DataObject {
 
 		if(DB::getConn() instanceof MySQLDatabase) {
 
-			// Filter the link mappings from a database level (currently only limited to MySQL due to the syntax/support).
+			// Filter the simple and regular expression link mappings from a database level (currently only limited to MySQL due to the syntax/support).
 
 			$matches = $matches->where(
 				"((LinkType = 'Simple') AND ((MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%'))) OR ((LinkType = 'Regular Expression') AND ('{$url}' REGEXP MappedLink))"
 			);
 		}
 		else {
-
-			// Filter the link mappings manually.
-
 			$filtered = ArrayList::create();
-			foreach($matches as $match) {
-				if((($match->LinkType === 'Simple') && (($match->MappedLink === $url) || (strpos($match->MappedLink, "{$url}?") === 0))) || (($match->LinkType === 'Regular Expression') && (preg_match("|{$match->MappedLink}|", $url)))) {
-					$filtered->push($match);
+
+			// Filter the simple link mappings from a database level.
+
+			$regexMatches = clone $matches;
+			$matches = $matches->where(
+				"(LinkType = 'Simple') AND ((MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%'))"
+			);
+
+			// Filter the remaining regular expression link mappings manually.
+
+			$regexMatches = $regexMatches->filter('LinkType', 'Regular Expression');
+			foreach($regexMatches as $regexMatch) {
+				if(preg_match("|{$regexMatch->MappedLink}|", $url)) {
+					$filtered->push($regexMatch);
 				}
 			}
-			$matches = $filtered;
+			$filtered->merge($matches);
+
+			// Make sure the regular expression link mappings are sorted correctly.
+
+			$filtered = $filtered->sort(array(
+				'Priority' => 'DESC',
+				'MappedLink' => 'DESC',
+				'ID' => 'DESC'
+			));
 		}
 
 		// Determine which link mapping should be returned.
