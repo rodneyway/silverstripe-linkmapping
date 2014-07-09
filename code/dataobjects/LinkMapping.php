@@ -81,10 +81,10 @@ class LinkMapping extends DataObject {
 
 		if(DB::getConn() instanceof MySQLDatabase) {
 
-			// Filter the simple and regular expression link mappings from a database level (currently only limited to MySQL due to the syntax/support).
+			// Filter the simple and regular expression link mappings from a database level (currently only limited to MySQL due to the syntax/support http://dev.mysql.com/doc/refman/5.1/en/regexp.html#operator_regexp).
 
 			$matches = $matches->where(
-				"((LinkType = 'Simple') AND ((MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%'))) OR ((LinkType = 'Regular Expression') AND ('{$url}' REGEXP MappedLink))"
+				"((LinkType = 'Simple') AND ((MappedLink = '{$url}') OR (MappedLink LIKE '{$url}?%'))) OR ((LinkType = 'Regular Expression') AND ('{$url}' REGEXP REPLACE(MappedLink, '\\\\', '\\\\\\\\')))"
 			);
 		}
 		else {
