@@ -1,9 +1,0 @@
----
-Name: linkmapping
----
-LinkMapping:
-  response_codes:
-    301:
-      '301: Permanent Redirect (Cached)'
-    303:
-      '303: Temporary Redirect'

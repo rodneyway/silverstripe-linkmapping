@@ -196,9 +196,26 @@ class LinkMapping extends DataObject {
 		$redirect->push(CheckboxField::create('ValidateExternalURL'));
 		$redirectLink->setRightTitle('External URLs will require the protocol explicitly defined');
 
+		// Retrieve the response code listing.
+
+		$responseCodes = Config::inst()->get('SS_HTTPResponse', 'status_codes');
+		foreach($responseCodes as $code => &$description) {
+
+			// Make sure the response code has been included in the description.
+
+			if(substr($code, 0, 1) === '3') {
+				$description = "{$code}: $description";
+			}
+
+			// Remove any response codes that are not a redirect.
+
+			else {
+				unset($responseCodes[$code]);
+			}
+		}
+
 		// Collate the response settings into a single grouping.
 
-		$responseCodes = Config::inst()->get($this->class, 'response_codes');
 		$response = FieldGroup::create(
 			DropdownField::create('ResponseCode', '', $responseCodes),
 			CheckboxField::create('ForwardPOSTRequest', _t('LinkMapping.FORWARDPOSTREQUEST', 'Forward POST Request'))

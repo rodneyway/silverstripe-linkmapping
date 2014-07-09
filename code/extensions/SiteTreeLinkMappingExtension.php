@@ -19,25 +19,30 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 			if((isset($changed['URLSegment']['before']) && isset($changed['URLSegment']['after']) && ($changed['URLSegment']['before'] != $changed['URLSegment']['after']))
 				|| (isset($changed['ParentID']['before']) && isset($changed['ParentID']['after']) && ($changed['ParentID']['before'] != $changed['ParentID']['after']))) {
 
-				// Construct the URL to be used for the link mapping.
+				// Make sure we don't create a link mapping for newly created pages.
 
 				$URLsegment = isset($changed['URLSegment']['before']) ? $changed['URLSegment']['before'] : $this->owner->URLSegment;
-				$parentID = isset($changed['ParentID']['before']) ? $changed['ParentID']['before'] : $this->owner->ParentID;
-				$parent = SiteTree::get_one('SiteTree', "SiteTree.ID = {$parentID}");
-				while($parent) {
-					$URLsegment = Controller::join_links($parent->URLSegment, $URLsegment);
-					$parent = SiteTree::get_one('SiteTree', "SiteTree.ID = {$parent->ParentID}");
-				}
+				if($URLsegment !== 'new-page') {
 
-				// Create a link mapping for this site tree element.
+					// Construct the URL to be used for the link mapping.
 
-				$this->createLinkMapping($URLsegment, $this->owner->ID);
+					$parentID = isset($changed['ParentID']['before']) ? $changed['ParentID']['before'] : $this->owner->ParentID;
+					$parent = SiteTree::get_one('SiteTree', "SiteTree.ID = {$parentID}");
+					while($parent) {
+						$URLsegment = Controller::join_links($parent->URLSegment, $URLsegment);
+						$parent = SiteTree::get_one('SiteTree', "SiteTree.ID = {$parent->ParentID}");
+					}
 
-				// Recursively create link mappings for any children of this site tree element.
+					// Create a link mapping for this site tree element.
 
-				$children = $this->owner->AllChildrenIncludingDeleted();
-				if($children->count()) {
-					$this->recursiveLinkMapping($URLsegment, $children);
+					$this->createLinkMapping($URLsegment, $this->owner->ID);
+
+					// Recursively create link mappings for any children of this site tree element.
+
+					$children = $this->owner->AllChildrenIncludingDeleted();
+					if($children->count()) {
+						$this->recursiveLinkMapping($URLsegment, $children);
+					}
 				}
 			}
 		}
