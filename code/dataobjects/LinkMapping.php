@@ -215,25 +215,17 @@ class LinkMapping extends DataObject {
 		// Retrieve the response code listing.
 
 		$responseCodes = Config::inst()->get('SS_HTTPResponse', 'status_codes');
-		foreach($responseCodes as $code => &$description) {
-
-			// Make sure the response code has been included in the description.
-
-			if(substr($code, 0, 1) === '3') {
-				$description = "{$code}: $description";
-			}
-
-			// Remove any response codes that are not a redirect.
-
-			else {
-				unset($responseCodes[$code]);
+		$redirectCodes = array();
+		foreach($responseCodes as $code => $description) {
+			if ($code >= 300 && $code < 400) {
+				$redirectCodes[$code] = "{$code}: $description";
 			}
 		}
 
 		// Collate the response settings into a single grouping.
 
 		$response = FieldGroup::create(
-			DropdownField::create('ResponseCode', '', $responseCodes),
+			DropdownField::create('ResponseCode', '', $redirectCodes),
 			CheckboxField::create('ForwardPOSTRequest', _t('LinkMapping.FORWARDPOSTREQUEST', 'Forward POST Request'))
 		)->setTitle(_t('LinkMapping.RESPONSECODE', 'Response Code'))->addExtraClass('response');
 		$fields->addFieldToTab('Root.Main', $response);
