@@ -30,11 +30,12 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 			'VanityHeader',
 			_t('LinkMapping.VanityHeader', 'Shortcut')
 		));
+		$vanityInfo = _t('LinkMapping.VANITY_DETAILS', 'Matching link mappings with higher priority will take precedence over this');
 		$fields->addFieldToTab('Root.LinkMapping', TextField::create(
 			'VanityURL',
 			'Vanity URL',
 			$this->owner->VanityMapping()->MappedLink
-		));
+		)->setRightTitle($vanityInfo));
 
 		// Allow customisation of fallback rules.
 
@@ -118,7 +119,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 			// Instantiate a new link mapping data object, or retrieve an existing one which matches.
 
-			$mapping = $this->createLinkMapping($vanityURL, $this->owner->ID);
+			$mapping = $this->createLinkMapping($vanityURL, $this->owner->ID, 2);
 			$this->owner->VanityMappingID = $mapping->ID;
 		}
 	}
@@ -208,7 +209,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 	 *	@return LinkMapping
 	 */
 
-	public function createLinkMapping($URLsegment, $redirectPageID) {
+	public function createLinkMapping($URLsegment, $redirectPageID, $priority = 1) {
 
 		// Make sure that the link mapping doesn't already exist.
 
@@ -226,7 +227,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 		$mapping->MappedLink = $URLsegment;
 		$mapping->RedirectType = 'Page';
 		$mapping->RedirectPageID = $redirectPageID;
-		$mapping->Priority = 1;
+		$mapping->Priority = $priority;
 		$mapping->write();
 		return $mapping;
 	}
