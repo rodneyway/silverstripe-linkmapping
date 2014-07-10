@@ -24,6 +24,32 @@
 			}
 		};
 
+		// Retrieve the link mapping chain for a given URL.
+
+		function retrieveLinkMappingChain(map) {
+
+			$.getJSON('/admin/link-mappings/LinkMapping/getLinkMappingChain',
+				{
+					map: map
+				},
+				function(JSON) {
+
+					if(JSON) {
+
+						// Iterate over each link mapping.
+
+						var output = '';
+						$.each(JSON, function(index, object) {
+							output += '<div>ID: ' + object['ID'] + '</div>';
+							output += '<div>Mapped Link: ' + object['MappedLink'] + '</div>';
+							output += '<div>Redirect Link: ' + object['RedirectLink'] + '</div>';
+							output += '<div>Priority: ' + object['Priority'] + '</div>';
+						});
+						$('div.link-mapping-test.admin div.results').html(output);
+					}
+				});
+		}
+
 		// Bind the mouse events dynamically.
 
 		$.entwine('ss', function($) {
@@ -47,6 +73,10 @@
 				onclick: function() {
 
 					if(!$(this).hasClass('disabled')) {
+
+						// Retrieve the link mapping chain using the current test URL and display this to the user.
+
+						retrieveLinkMappingChain($('div.link-mapping-test.admin input.url').val());
 					}
 				}
 			});

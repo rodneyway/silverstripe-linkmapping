@@ -52,11 +52,6 @@ class LinkMapping extends DataObject {
 
 	private $matchedURL;
 
-	public function setMatchedURL($matchedURL) {
-
-		$this->matchedURL = $matchedURL;
-	}
-
 	/**
 	 * Returns a link mapping for a link if one exists.
 	 *
@@ -164,6 +159,77 @@ class LinkMapping extends DataObject {
 	 */
 	public static function unify_link($link) {
 		return strtolower(trim($link, '/?'));
+	}
+
+	/**
+	 *	Retrieve the link mapping chain for something such as testing.
+	 *	@return array
+	 */
+
+	public static function get_link_mapping_chain_by_request(SS_HTTPRequest $request) {
+
+		return self::get_link_mapping_by_request($request, true);
+	}
+
+	/**
+	 *	Retrieve a link mapping where the URL matches appropriately.
+	 *	@return LinkMapping
+	 */
+
+	public static function get_link_mapping_by_request(SS_HTTPRequest $request, $testing = false) {
+
+		// Clean up the URL, making sure an external URL comes through correctly.
+
+		$link = $request->getURL(true);
+		$link = str_replace(':/', '://', $link);
+
+		// Retrieve the appropriate link mapping.
+
+		$map = self::get_by_link($link);
+		if($map) {
+
+			// Traverse the link mapping chain and return the final link mapping.
+
+			return self::get_recursive_link_mapping($map, $testing);
+		}
+		return null;
+	}
+
+	/**
+	 *	Traverse the link mapping chain and return the final link mapping.
+	 *	@return string
+	 */
+
+	public static function get_recursive_link_mapping(LinkMapping $map, $testing = false) {
+
+		// Keep track of the link mapping recursion stack.
+
+		$chain = array(
+			$map->toMap()
+		);
+		$counter = 1;
+		$redirect = $map->getLink();
+		while($next = self::get_by_link($redirect)) {
+			$chain[] = $next->toMap();
+
+			// Enforce a maximum number of redirects, preventing inefficient link mappings and infinite recursion.
+
+			if($counter === Config::inst()->get('LinkMappingRequestFilter', 'maximum_requests')) {
+				$chain[] = array(
+					'ResponseCode' => 404
+				);
+				return $testing ? $chain : null;
+			}
+			$counter++;
+			$redirect = $next->getLink();
+			$map = $next;
+		}
+		return $testing ? $chain : $map;
+	}
+
+	public function setMatchedURL($matchedURL) {
+
+		$this->matchedURL = $matchedURL;
 	}
 
 	public function getCMSFields() {

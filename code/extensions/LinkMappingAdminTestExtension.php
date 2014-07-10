@@ -1,7 +1,7 @@
 <?php
 
 /**
- *	Allow AJAX testing when viewing the LinkMappingAdmin.
+ *	Allow AJAX link mapping chain testing when viewing the LinkMappingAdmin.
  *	@author Nathan Glasl <nathan@silverstripe.com.au>
  */
 
