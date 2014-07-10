@@ -133,7 +133,7 @@ class LinkMappingRequestFilter implements RequestFilter {
 				}
 			}
 			if (strlen($linkTo)) {
-				return array('link' => $linkTo, 'code' => $responseCode);
+				return array('link' => $linkTo, 'code' => $responseCode ? $responseCode : 301);
 			}
 		}
 	}

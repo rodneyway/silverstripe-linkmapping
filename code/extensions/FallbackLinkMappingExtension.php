@@ -17,6 +17,8 @@ class FallbackLinkMappingExtension extends DataExtension {
 	);
 	
 	protected function updateFields(FieldList $fields) {
+		Requirements::javascript('linkmapping/javascript/link-mapping-fallbacks.js');
+		
 		// Allow customisation of fallback rules.
 		$fields->addFieldToTab('Root.LinkMapping', HeaderField::create(
 			'FallbackHeader',
@@ -47,7 +49,12 @@ class FallbackLinkMappingExtension extends DataExtension {
 		
 		$fields->addFieldToTab('Root.LinkMapping', $field);
 		$fields->addFieldToTab('Root.LinkMapping', TextField::create('FallbackUrl', _t('LinkMapping.FALLBACK_URL', 'Fallback URL')));
-		$fields->addFieldToTab('Root.LinkMapping', DropdownField::create('FallbackResponse', _t('LinkMapping.FALLBACK_RESPONSE', 'Response code'), $redirectCodes));
+		$fields->addFieldToTab('Root.LinkMapping', DropdownField::create(
+				'FallbackResponse', 
+				_t('LinkMapping.FALLBACK_RESPONSE', 'Response code'), 
+				$redirectCodes
+			)->setHasEmptyDefault(true)
+		);
 	}
 
 	public function updateCMSFields(\FieldList $fields) {
