@@ -4,3 +4,6 @@ Name: extensions
 SiteTree:
   extensions:
     - 'SiteTreeLinkMappingExtension'
+LinkMappingAdmin:
+  extensions:
+    - 'LinkMappingAdminTestExtension'
