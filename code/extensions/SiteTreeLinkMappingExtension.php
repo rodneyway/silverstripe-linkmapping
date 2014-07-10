@@ -7,14 +7,41 @@
  */
 
 class SiteTreeLinkMappingExtension extends DataExtension {
-	
+
+	// Allow setting fallback rules on a per page basis.
+
 	private static $db = array(
 		'FallbackRule'		=> 'Varchar',
 		'FallbackUrl'		=> 'Varchar(255)',
 		'FallbackResponse'	=> 'Varchar',
 	);
+
+	// Allow direct link mapping customisation from the pages themselves.
+
+	private static $has_one = array(
+		'VanityMapping' => 'LinkMapping'
+	);
 	
-	public function updateSettingsFields(\FieldList $fields) {
+	public function updateSettingsFields(FieldList $fields) {
+
+		// Allow direct link mapping customisation using a vanity URL.
+
+		$fields->addFieldToTab('Root.LinkMapping', HeaderField::create(
+			'VanityHeader',
+			_t('LinkMapping.VanityHeader', 'Shortcut')
+		));
+		$fields->addFieldToTab('Root.LinkMapping', TextField::create(
+			'VanityURL',
+			'Vanity URL',
+			$this->owner->VanityMapping()->MappedLink
+		));
+
+		// Allow customisation of fallback rules.
+
+		$fields->addFieldToTab('Root.LinkMapping', HeaderField::create(
+			'FallbackHeader',
+			_t('LinkMapping.FallbackHeader', 'Fallbacks')
+		));
 		$options = array(
 			'URL'		=> _t('LinkMapping.STRAIGHT_URL', 'Specific URL'),
 			'ThisPage'	=> _t('LinkMapping.THIS_PAGE', 'This Page'),
@@ -47,11 +74,53 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 			)->setRightTitle($info)
 			 ->setHasEmptyDefault(true);
 		
-		$fields->addFieldToTab('Root.LinkMappings', $field);
-		$fields->addFieldToTab('Root.LinkMappings', TextField::create('FallbackUrl', _t('LinkMapping.FALLBACK_URL', 'Fallback url')));
+		$fields->addFieldToTab('Root.LinkMapping', $field);
+		$fields->addFieldToTab('Root.LinkMapping', TextField::create('FallbackUrl', _t('LinkMapping.FALLBACK_URL', 'Fallback URL')));
 		
-		$fields->addFieldToTab('Root.LinkMappings', DropdownField::create('FallbackResponse', _t('LinkMapping.FALLBACK_RESPONSE', 'Response code'), $responseCodes));
+		$fields->addFieldToTab('Root.LinkMapping', DropdownField::create('FallbackResponse', _t('LinkMapping.FALLBACK_RESPONSE', 'Response code'), $responseCodes));
 		
+	}
+
+	public function onBeforeWrite() {
+
+		// Retrieve the post variable here since $this->owner->VanityURL does not work.
+
+		$vanityURL = Controller::curr()->getRequest()->postVar('VanityURL');
+		$mappingExists = $this->owner->VanityMapping()->exists();
+
+		// Update the existing link mapping using the user defined vanity URL.
+
+		if($vanityURL && $mappingExists) {
+
+			// Make sure the vanity URL has actually been updated.
+
+			if($this->owner->VanityMapping()->MappedLink !== $vanityURL) {
+
+				// Update the link mapping data object.
+
+				$this->owner->VanityMapping()->MappedLink = $vanityURL;
+				$this->owner->VanityMapping()->write();
+			}
+		}
+
+		// Remove the existing link mapping when the user defined vanity URL is found blank.
+
+		else if($mappingExists) {
+
+			// Remove the link mapping data object.
+
+			$this->owner->VanityMapping()->delete();
+		}
+
+		// Instantiate the direct link mapping when the user defined vanity URL has been defined.
+
+		else if($vanityURL) {
+
+			// Instantiate a new link mapping data object, or retrieve an existing one which matches.
+
+			$mapping = $this->createLinkMapping($vanityURL, $this->owner->ID);
+			$this->owner->VanityMappingID = $mapping->ID;
+		}
 	}
 
 	public function onAfterWrite() {
@@ -136,6 +205,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 	 *	Create a new link mapping from a URL segment to a site tree element by ID.
 	 *	@param string
 	 *	@param integer
+	 *	@return LinkMapping
 	 */
 
 	public function createLinkMapping($URLsegment, $redirectPageID) {
@@ -147,7 +217,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 			'RedirectPageID' => $redirectPageID
 		))->first();
 		if($existing) {
-			return;
+			return $existing;
 		}
 
 		// Create the new link mapping with appropriate defaults.
@@ -158,6 +228,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 		$mapping->RedirectPageID = $redirectPageID;
 		$mapping->Priority = 1;
 		$mapping->write();
+		return $mapping;
 	}
 
 }
