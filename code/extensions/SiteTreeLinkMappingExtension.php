@@ -76,7 +76,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 			// Instantiate a new link mapping data object, or retrieve an existing one which matches.
 
-			$mapping = $this->createLinkMapping($vanityURL, $this->owner->ID, 2);
+			$mapping = $this->createLinkMapping($vanityURL, $this->owner->ID, $this->owner->Link(), 2);
 			$this->owner->VanityMappingID = $mapping->ID;
 		}
 	}
@@ -108,7 +108,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 					// Create a link mapping for this site tree element.
 
-					$this->createLinkMapping($URLsegment, $this->owner->ID);
+					$this->createLinkMapping($URLsegment, $this->owner->ID, $this->owner->Link());
 
 					// Recursively create link mappings for any children of this site tree element.
 
@@ -148,7 +148,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 		foreach($children as $child) {
 			$URLsegment = Controller::join_links($baseURL, $child->URLSegment);
-			$this->createLinkMapping($URLsegment, $child->ID);
+			$this->createLinkMapping($URLsegment, $child->ID, $child->Link());
 
 			// Recursively create link mappings for any children of this child.
 
@@ -166,14 +166,15 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 	 *	@return LinkMapping
 	 */
 
-	public function createLinkMapping($URLsegment, $redirectPageID, $priority = 1) {
+	public function createLinkMapping($URLsegment, $redirectPageID, $pageLink, $priority = 1) {
 
-		// Make sure that the link mapping doesn't already exist.
+		// Make sure that the link mapping doesn't already exist, and that it will not be infinitely recursive.
 
 		$existing = LinkMapping::get()->filter(array(
-			'MappedLink' => $URLsegment,
 			'RedirectPageID' => $redirectPageID
-		))->first();
+		))->where(
+			"MappedLink = '" . Convert::raw2sql($URLsegment) . "' OR MappedLink = '" . Convert::raw2sql(LinkMapping::unify_link($pageLink)) . "'"
+		)->first();
 		if($existing) {
 			return $existing;
 		}
