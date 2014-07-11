@@ -34,19 +34,37 @@
 				},
 				function(JSON) {
 
+					var output = '';
 					if(JSON) {
 
-						// Iterate over each link mapping.
+						// Iterate over each link mapping and collate any important data.
 
-						var output = '';
 						$.each(JSON, function(index, object) {
-							output += '<div>ID: ' + object['ID'] + '</div>';
-							output += '<div>Mapped Link: ' + object['MappedLink'] + '</div>';
-							output += '<div>Redirect Link: ' + object['RedirectLink'] + '</div>';
-							output += '<div>Priority: ' + object['Priority'] + '</div>';
+							output += "<div class='result'>";
+								if(object['ResponseCode'] !== 404) {
+									output += '<h3><strong>' + object['Counter'] + '</strong></h3>';
+									output += '<div><strong>Link Type</strong> ' + object['LinkType'] + '</div>';
+									output += '<div><strong>Mapped Link</strong> ' + object['MappedLink'] + '</div>';
+									output += '<div><strong>Redirect Link</strong> ' + object['RedirectLink'] + '</div>';
+									output += '<div><strong>Response Code</strong> ' + object['ResponseCode'] + '</div>';
+									output += '<div><strong>Priority</strong> ' + object['Priority'] + '</div>';
+								}
+								else {
+									output += '<h3><strong>Maximum</strong></h3>';
+									output += '<div><strong>Response Code</strong> ' + object['ResponseCode'] + '</div>';
+								}
+							output += '</div>';
 						});
-						$('div.link-mapping-test.admin div.results').html(output);
 					}
+					else {
+						output += "<div class='result'>";
+							output += '<h3><strong>No Matches</strong></h3>';
+						output += '</div>';
+					}
+
+					// Display these to the user.
+
+					$('div.link-mapping-test.admin div.results').html(output);
 				});
 		}
 

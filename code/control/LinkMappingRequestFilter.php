@@ -9,7 +9,7 @@
 class LinkMappingRequestFilter implements RequestFilter {
 
 	private static $replace_default = true;
-	private static $maximum_requests = 10;
+	private static $maximum_requests = 9;
 
 	public function preRequest(SS_HTTPRequest $request, Session $session, DataModel $model) {
 

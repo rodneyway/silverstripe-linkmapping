@@ -70,19 +70,41 @@ div.link-mapping-test.admin div {
 	margin-bottom: 10px;
 }
 
-div.link-mapping-test.admin span.test {
-	min-width: 150px;
-}
-
 div.link-mapping-test.admin input.url {
 	min-width: 580px;
 	padding: 4px;
+}
+
+div.link-mapping-test.admin div.results {
+	overflow: hidden;
+	margin-bottom: 0;
+}
+
+div.link-mapping-test.admin div.result {
+	float: left;
+	margin: 0 1% 0;
+	width: 18%;
+}
+
+div.link-mapping-test.admin div.result h3 {
+	margin: 0 0 10px;
+	text-decoration: underline;
+}
+
+div.link-mapping-test.admin span.test {
+	min-width: 150px;
 }
 
 div.link-mapping-test.admin span.test.disabled {
 	filter: Alpha(opacity = 40);
 	opacity: 0.4;
 	cursor: not-allowed;
+}
+
+/* This is used to correct the float height issue, however will not be supported by IE8. */
+
+div.link-mapping-test.admin div.result:nth-child(5n+1) {
+    clear: both;
 }
 
 /* Correcting core layout issues when viewing the LinkMappingAdmin through the CMS. */

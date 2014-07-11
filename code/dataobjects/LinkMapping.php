@@ -204,13 +204,14 @@ class LinkMapping extends DataObject {
 
 		// Keep track of the link mapping recursion stack.
 
-		$chain = array(
-			$map->toMap()
-		);
 		$counter = 1;
+		$chain = array(
+			array_merge($map->toMap(), array(
+				'Counter' => $counter)
+			)
+		);
 		$redirect = $map->getLink();
 		while($next = self::get_by_link($redirect)) {
-			$chain[] = $next->toMap();
 
 			// Enforce a maximum number of redirects, preventing inefficient link mappings and infinite recursion.
 
@@ -220,7 +221,9 @@ class LinkMapping extends DataObject {
 				);
 				return $testing ? $chain : null;
 			}
-			$counter++;
+			$chain[] = array_merge($next->toMap(), array(
+				'Counter' => ++$counter)
+			);
 			$redirect = $next->getLink();
 			$map = $next;
 		}
