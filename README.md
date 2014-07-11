@@ -28,22 +28,37 @@ When a certain depth of link mappings has been reached, the server will return w
 
 ```yml
 LinkMappingRequestFilter:
-  maximum_requests: 10
+  maximum_requests: 9
 ```
 
 ### Link Mappings
-
-It is also possible to customise the listing of response codes, where the default will be a `303`.
 
 #### Priority
 
 When multiple link mappings end up being matched, the one to be used is determined based on a priority field and how specific the definition is.
 
-#### Automatic Creation
+#### Testing
+
+![test](images/link-mapping-test.png)
+
+This will retrieve the link mapping call stack for a given URL, and whether that reached the maximum request limit.
+
+### Site Tree
+
+#### Automatic Link Mapping
 
 When the URL segment of a site tree element has been updated, a link mapping will automatically be created. This functionality will be removed as soon as you enable SilverStripe's default automated URL handling (as it will no longer be required).
 
+#### Vanity URL
+
+You may create a vanity link mapping from your site tree element, however other matching link mappings with higher priority will take precedence.
+
+### Fallbacks
+
+These will be triggered when no link mappings are found, and the response will be a 404.
+
+You may either set a global fallback default under the site settings, or create a fallback from an individual site tree element.
+
 ## Maintainer Contacts
 
-	Andrew Short, andrew@silverstripe.com.au
 	Nathan Glasl, nathan@silverstripe.com.au
