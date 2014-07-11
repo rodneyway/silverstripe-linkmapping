@@ -36,50 +36,6 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 			'Vanity URL',
 			$this->owner->VanityMapping()->MappedLink
 		)->setRightTitle($vanityInfo));
-
-		// Allow customisation of fallback rules.
-
-		$fields->addFieldToTab('Root.LinkMapping', HeaderField::create(
-			'FallbackHeader',
-			_t('LinkMapping.FallbackHeader', 'Fallbacks')
-		));
-		$options = array(
-			'URL'		=> _t('LinkMapping.STRAIGHT_URL', 'Specific URL'),
-			'ThisPage'	=> _t('LinkMapping.THIS_PAGE', 'This Page'),
-			'Nearest'	=> _t('LinkMapping.NEAREST', 'Nearest Parent')
-		);
-		
-		// Retrieve the response code listing.
-
-		$responseCodes = Config::inst()->get('SS_HTTPResponse', 'status_codes');
-		foreach($responseCodes as $code => &$description) {
-
-			// Make sure the response code has been included in the description.
-
-			if(substr($code, 0, 1) === '3') {
-				$description = "{$code}: $description";
-			}
-
-			// Remove any response codes that are not a redirect.
-
-			else {
-				unset($responseCodes[$code]);
-			}
-		}
-
-		$info = _t('LinkMapping.FALLBACK_DETAILS', 'Select a method to use for handling any missing child page');
-		$field = DropdownField::create(
-				'FallbackRule', 
-				_t('LinkMapping.FALLBACK_RULE', 'Fallback rule'), 
-				$options
-			)->setRightTitle($info)
-			 ->setHasEmptyDefault(true);
-		
-		$fields->addFieldToTab('Root.LinkMapping', $field);
-		$fields->addFieldToTab('Root.LinkMapping', TextField::create('FallbackUrl', _t('LinkMapping.FALLBACK_URL', 'Fallback URL')));
-		
-		$fields->addFieldToTab('Root.LinkMapping', DropdownField::create('FallbackResponse', _t('LinkMapping.FALLBACK_RESPONSE', 'Response code'), $responseCodes));
-		
 	}
 
 	public function onBeforeWrite() {
