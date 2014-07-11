@@ -161,8 +161,9 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 	/**
 	 *	Create a new link mapping from a URL segment to a site tree element by ID.
-	 *	@param string
+	 *	@param <NEW_LINK_MAPPING_URL> string
 	 *	@param integer
+	 *	@param <LINKED_PAGE_URL> string
 	 *	@return LinkMapping
 	 */
 
