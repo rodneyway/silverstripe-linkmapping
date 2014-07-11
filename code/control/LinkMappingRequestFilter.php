@@ -101,11 +101,11 @@ class LinkMappingRequestFilter implements RequestFilter {
 			))->first();
 
 			if ($page) {
-				$nearestParent = $page->Link();
+				$nearestParent = ($page->Link() === '/') ? '/home/' : $page->Link();
 				if ($page->FallbackRule) {
 					$parentId = $page->ID;
 					$applicableRule = $page->FallbackRule;
-					$thisPage = $page->Link();
+					$thisPage = ($page->Link() === '/') ? '/home/' : $page->Link();
 					$responseCode = $page->FallbackResponse;
 					// we might not actually use this, but we record it anyway in case
 					$specificUrl = $page->FallbackUrl;

@@ -212,6 +212,9 @@ class LinkMapping extends DataObject {
 				'RedirectLink' => $redirect
 			), $map->toMap())
 		);
+
+		// Retrieve the next link mapping if one exists.
+
 		while($next = self::get_by_link($redirect)) {
 
 			// Enforce a maximum number of redirects, preventing inefficient link mappings and infinite recursion.
@@ -220,6 +223,9 @@ class LinkMapping extends DataObject {
 				$chain[] = array(
 					'ResponseCode' => 404
 				);
+
+				// Return the call stack when the testing flag has been set.
+
 				return $testing ? $chain : null;
 			}
 			$redirect = $next->getLink();
@@ -229,6 +235,9 @@ class LinkMapping extends DataObject {
 			), $next->toMap());
 			$map = $next;
 		}
+
+		// Return the call stack when the testing flag has been set.
+
 		return $testing ? $chain : $map;
 	}
 
@@ -342,7 +351,7 @@ class LinkMapping extends DataObject {
 	public function getLink() {
 
 		if ($page = $this->getRedirectPage()) {
-			return $page->Link();
+			return ($page->Link() === '/') ? '/home/' : $page->Link();
 		} else {
 			return ($this->LinkType === 'Regular Expression') ?
 				preg_replace("|{$this->MappedLink}|i", $this->RedirectLink, $this->matchedURL) : $this->RedirectLink;
@@ -378,8 +387,8 @@ class LinkMapping extends DataObject {
 	public function getRedirectPageLink() {
 
 		return (($this->RedirectType !== 'Link') && ClassInfo::exists('SiteTree')) ? (
-			(($page = $this->getRedirectPage()) && $page->Link()) ?
-				$page->Link() : '-'
+			(($page = $this->getRedirectPage()) && ($page->Link() === '/') ? '/home/' : $page->Link()) ?
+				($page->Link() === '/') ? '/home/' : $page->Link() : '-'
 		) : ($this->RedirectLink ? $this->RedirectLink : '-');
 	}
 

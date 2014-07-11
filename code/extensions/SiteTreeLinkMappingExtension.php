@@ -76,7 +76,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 			// Instantiate a new link mapping data object, or retrieve an existing one which matches.
 
-			$mapping = $this->createLinkMapping($vanityURL, $this->owner->ID, $this->owner->Link(), 2);
+			$mapping = $this->createLinkMapping($vanityURL, $this->owner->ID, ($this->owner->Link() === '/') ? '/home/' : $this->owner->Link(), 2);
 			$this->owner->VanityMappingID = $mapping->ID;
 		}
 	}
@@ -108,7 +108,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 					// Create a link mapping for this site tree element.
 
-					$this->createLinkMapping($URLsegment, $this->owner->ID, $this->owner->Link());
+					$this->createLinkMapping($URLsegment, $this->owner->ID, ($this->owner->Link() === '/') ? '/home/' : $this->owner->Link());
 
 					// Recursively create link mappings for any children of this site tree element.
 
@@ -148,7 +148,7 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 		foreach($children as $child) {
 			$URLsegment = Controller::join_links($baseURL, $child->URLSegment);
-			$this->createLinkMapping($URLsegment, $child->ID, $child->Link());
+			$this->createLinkMapping($URLsegment, $child->ID, ($child->Link() === '/') ? '/home/' : $child->Link());
 
 			// Recursively create link mappings for any children of this child.
 
