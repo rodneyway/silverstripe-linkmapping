@@ -42,7 +42,8 @@ class SiteTreeLinkMappingExtension extends DataExtension {
 
 		// Retrieve the post variable here since $this->owner->VanityURL does not work.
 
-		$vanityURL = Controller::curr()->getRequest()->postVar('VanityURL');
+		$vanityURL = ($URL = Controller::curr()->getRequest()->postVar('VanityURL')) ?
+			$URL : $this->owner->VanityMapping()->MappedLink;
 		$mappingExists = $this->owner->VanityMapping()->exists();
 
 		// Update the existing link mapping using the user defined vanity URL.
