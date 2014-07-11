@@ -206,9 +206,10 @@ class LinkMapping extends DataObject {
 
 		$counter = 1;
 		$chain = array(
-			array_merge($map->toMap(), array(
-				'Counter' => $counter)
-			)
+			array_merge(array(
+				'Counter' => $counter,
+				'RedirectLink' => $map->getLink()
+			), $map->toMap())
 		);
 		$redirect = $map->getLink();
 		while($next = self::get_by_link($redirect)) {
@@ -221,9 +222,10 @@ class LinkMapping extends DataObject {
 				);
 				return $testing ? $chain : null;
 			}
-			$chain[] = array_merge($next->toMap(), array(
-				'Counter' => ++$counter)
-			);
+			$chain[] = array_merge(array(
+				'Counter' => ++$counter,
+				'RedirectLink' => $next->getLink()
+			), $next->toMap());
 			$redirect = $next->getLink();
 			$map = $next;
 		}
