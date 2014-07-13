@@ -387,8 +387,8 @@ class LinkMapping extends DataObject {
 	public function getRedirectPageLink() {
 
 		return (($this->RedirectType !== 'Link') && ClassInfo::exists('SiteTree')) ? (
-			(($page = $this->getRedirectPage()) && ($page->Link() === '/') ? '/home/' : $page->Link()) ?
-				($page->Link() === '/') ? '/home/' : $page->Link() : '-'
+			(($page = $this->getRedirectPage()) && (($page->Link() === '/') ? '/home/' : $page->Link())) ? (
+				($page->Link() === '/') ? '/home/' : $page->Link()) : '-'
 		) : ($this->RedirectLink ? $this->RedirectLink : '-');
 	}
 
