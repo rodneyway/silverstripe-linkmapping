@@ -17,7 +17,8 @@ class LinkMapping extends DataObject {
 		'RedirectPageID' => 'Int',
 		'ResponseCode' => 'Int',
 		'ForwardPOSTRequest' => 'Boolean',
-		'Priority' => 'Int'
+		'Priority' => 'Int',
+		'HostnameRestriction' => 'Varchar(255)'
 	);
 
 	private static $defaults = array(
@@ -29,7 +30,8 @@ class LinkMapping extends DataObject {
 		'RedirectType',
 		'Stage',
 		'RedirectPageLink',
-		'RedirectPageTitle'
+		'RedirectPageTitle',
+		'HostnameRestriction'
 	);
 
 	private static $field_labels = array(
@@ -53,12 +55,14 @@ class LinkMapping extends DataObject {
 	private $matchedURL;
 
 	/**
-	 * Returns a link mapping for a link if one exists.
+	 *	Returns a link mapping for a link if one exists, matching any restrictions and priorities that have been set.
 	 *
-	 * @param  string $link
-	 * @return LinkMapping
+	 *	@param string
+	 *	@param string
+	 *	@return LinkMapping
 	 */
-	public static function get_by_link($link) {
+
+	public static function get_by_link($link, $host = null) {
 
 		$link = self::unify_link(Director::makeRelative($link));
 		$linkParts = explode('?', $link);
@@ -71,6 +75,15 @@ class LinkMapping extends DataObject {
 			'MappedLink' => 'DESC',
 			'ID' => 'DESC'
 		));
+
+		// Enforce any hostname restrictions that may have been defined against the link mapping.
+
+		if(is_null($host)) {
+			$host = Controller::curr()->getRequest()->getHeader('Host');
+		}
+		$matches = $matches->where(
+			"(HostnameRestriction IS NULL) OR (HostnameRestriction = '" . Convert::raw2sql($host) . "')"
+		);
 
 		// Retrieve the matching link mappings depending on the database connection type.
 
@@ -168,6 +181,8 @@ class LinkMapping extends DataObject {
 
 	public static function get_link_mapping_chain_by_request(SS_HTTPRequest $request) {
 
+		// Pass the testing flag through so the link mapping chain ends up being returned.
+
 		return self::get_link_mapping_by_request($request, true);
 	}
 
@@ -182,15 +197,16 @@ class LinkMapping extends DataObject {
 
 		$link = $request->getURL(true);
 		$link = str_replace(':/', '://', $link);
+		$host = $request->getHeader('Host');
 
 		// Retrieve the appropriate link mapping.
 
-		$map = self::get_by_link($link);
+		$map = self::get_by_link($link, $host);
 		if($map) {
 
 			// Traverse the link mapping chain and return the final link mapping.
 
-			return self::get_recursive_link_mapping($map, $testing);
+			return self::get_recursive_link_mapping($host, $map, $testing);
 		}
 		return null;
 	}
@@ -200,7 +216,7 @@ class LinkMapping extends DataObject {
 	 *	@return string
 	 */
 
-	public static function get_recursive_link_mapping(LinkMapping $map, $testing = false) {
+	public static function get_recursive_link_mapping($host, LinkMapping $map, $testing = false) {
 
 		// Keep track of the link mapping recursion stack.
 
@@ -215,7 +231,7 @@ class LinkMapping extends DataObject {
 
 		// Retrieve the next link mapping if one exists.
 
-		while($next = self::get_by_link($redirect)) {
+		while($next = self::get_by_link($redirect, $host)) {
 
 			// Enforce a maximum number of redirects, preventing inefficient link mappings and infinite recursion.
 
@@ -250,12 +266,16 @@ class LinkMapping extends DataObject {
 
 		$fields = parent::getCMSFields();
 		Requirements::css(LINK_MAPPING_PATH . '/css/link-mapping.css');
+
+		// Remove any fields that are either not required or need to be moved around.
+
 		$fields->removeByName('RedirectType');
 		$fields->removeByName('RedirectLink');
 		$fields->removeByName('RedirectPageID');
 		$fields->removeByName('ResponseCode');
 		$fields->removeByName('ForwardPOSTRequest');
 		$fields->removeByName('Priority');
+		$fields->removeByName('HostnameRestriction');
 
 		$fields->insertBefore(HeaderField::create(
 			'MappedLinkHeader', $this->fieldLabel('MappedLinkHeader')
@@ -309,6 +329,10 @@ class LinkMapping extends DataObject {
 			CheckboxField::create('ForwardPOSTRequest', _t('LinkMapping.FORWARDPOSTREQUEST', 'Forward POST Request'))
 		)->setTitle(_t('LinkMapping.RESPONSECODE', 'Response Code'))->addExtraClass('response');
 		$fields->addFieldToTab('Root.Main', $response);
+
+		// Create an optional tab to manage the hostname restriction.
+
+		$fields->addFieldToTab('Root.Optional', TextField::create('HostnameRestriction'));
 
 		return $fields;
 	}

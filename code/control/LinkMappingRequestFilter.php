@@ -45,9 +45,9 @@ class LinkMappingRequestFilter implements RequestFilter {
 			$response->redirect($map->getLink(), $responseCode);
 		}
 
-		// Trigger any fallbacks.
+		// Trigger any fallbacks so long as the CMS module exists.
 
-		else if($status === 404) {
+		else if(($status === 404) && ClassInfo::exists('SiteTree')) {
 			$link = trim($request->getURL(), '/');
 			
 			if (strlen($link)) {
