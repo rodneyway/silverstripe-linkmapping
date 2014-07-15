@@ -3,7 +3,7 @@
  * Creates a LinkMapping record for all previous SiteTree URL's still in use
  * - will not create link mappings for SitreTree objects that no longer exist
  * 
- * APPROACH
+ * Approach:
  * Loop through all records in the SiteTree_versions table, replaying the 'publish' action
  * into a temporary table (replay_table). At each point of record creation, collect all affected
  * URL's based on the following conditions:
@@ -18,8 +18,15 @@
  * 3. Pages that are Moved are picked up by subsequent publishes - no special handling required
  * 4. Pages that are deleted are handled by cascade operation (assumes SiteTree::$enforce_strict_hierarchy = true)
  * 
+ * Warning: 
+ * If you elect to turn off temporary table usage, please ensure you don't have an existing named table matching $default_table 
+ * 
+ * Configuration:
+ * 	- $use_temporary_table   	(default = true) turn off to examine results in replay table after connection completes
+ *  - $live						(default = false) pass through true when ready to create LinkMapping records
+ * 
  * @todo Remove MySQL reliance
- * @todo Check if table with same name exists - self::replay_table - prompt user to continue...
+ * 
  * 
  * @package silverstripe-linkmapping
  * @subpackage tasks
@@ -32,9 +39,14 @@ class HistoricalLinkMappingTask extends BuildTask {
 	protected $description = "Create a link mapping entry for each previous URL version of existing pages. Checking is performed
 								to ensure that duplicate link mapping records are not created.";
 	
-	protected $linkmappings = array(); // Array of linkmappings to be reviewed & created
+	protected $live = false; // Don't create LinkMapping records until user specifically requests live run, with get param live=true
 	
-	protected static $replay_table = 'LinkMapping_replay'; // Temporary table
+	protected $linkmappings = array(); 	// Array of linkmappings to be reviewed & created
+	
+	protected static $default_table = 'LinkMapping_replay';	// Use, unless Temporary Table is set to true
+
+	protected static $use_temporary_table = true;
+	protected $replay_table = '';
 	
 	protected static $db_columns = array(
 		'ID'			=> 'int',
@@ -48,21 +60,20 @@ class HistoricalLinkMappingTask extends BuildTask {
 	protected $replaceColumnString = '';
 	
 	public function run($request) {		
-		$this->setupStructure();
-		$records = $this->publishedVersionRecords();
+
+		if ($request->getVar('live') == 'true') {
+			$this->live = true;
+		} else {
+			echo '<br />Running in Test mode... to actually create Link Mappings, please add ?live=true to url.<br /><br />';
+		}
 		
+		$this->setupStructure();
+		
+		$records = $this->publishedVersionRecords();
 		$this->processRecords($records);
 		
-		// @todo finalise the method below...
-		$this->removeCurrentLiveMappings();
-		
-		foreach ($this->linkmappings as $url => $SiteTreeID) {
-			print($SiteTreeID.' - '.$url.'<br />');
-		
-			// @todo - Add LinkMappings to module - Nathan
-			// SiteTreeLinkMappingExtension->createLinkMapping(<params>);
-		}
-						
+		$this->checkAndCreateMappings();		
+				
 		echo '<br />Done';
 	}
 	
@@ -93,10 +104,7 @@ class HistoricalLinkMappingTask extends BuildTask {
 	
 
 	/**
-	 * Add Records to DB one by one, saving the current URL, and any affected children URL's along the way
-	 * 
-	 * @todo handle case where page was moved (parent id has changed)
-	 * @todo handle case where page was deleted (??? how is this reflected in SiteTree_versions)
+	 * Add Records to replay table one by one, saving the current URL, and any affected children URL's along the way
 	 * 
 	 * @param DB_Resource_Record Records to process
 	 */
@@ -119,7 +127,6 @@ class HistoricalLinkMappingTask extends BuildTask {
 			$url = $this->getURLForRecord($replayRecord);
 			
 			if ($url) {					
-				//@todo 1. check that destination page exists, 2. that this URL is not the live URL
 				$this->addMappingToList($url, $replayRecord["ID"]);				
 			}
 			
@@ -146,13 +153,13 @@ class HistoricalLinkMappingTask extends BuildTask {
 	
 	protected function addMappingToList($url, $id) {
 		$this->linkmappings[$url] = $id;
-		DB::query("UPDATE ".self::$replay_table." SET \"FullURL\"='".$url."' WHERE \"ID\"=".$id);		
+		DB::query("UPDATE ".$this->replay_table." SET \"FullURL\"='".$url."' WHERE \"ID\"=".$id);		
 	}
 
 	protected function addRecord($record) {
 		//@todo - remove reliance on MySQL (or test that this works with other db's)
 		
-		$sql = 'REPLACE INTO '.self::$replay_table.' '.
+		$sql = 'REPLACE INTO '.$this->replay_table.' '.
 				'('.$this->replaceColumnString.')'.
 				' VALUES ('.
 				"'".$record["RecordID"]."'".
@@ -196,7 +203,7 @@ class HistoricalLinkMappingTask extends BuildTask {
 	protected function getReplayRecordByID($id) {
 		$query = new SQLQuery (
 			'*',
-			self::$replay_table,
+			$this->replay_table,
 			'"ID" = '.$id
 		);
 		$records = $query->execute();
@@ -216,7 +223,7 @@ class HistoricalLinkMappingTask extends BuildTask {
 	protected function childPages($id) {
 		$query = new SQLQuery (
 			'*',
-			self::$replay_table,
+			$this->replay_table,
 			'"ParentID" = '.$id
 		);
 		
@@ -254,7 +261,7 @@ class HistoricalLinkMappingTask extends BuildTask {
 			//Get most recently published Parent
 			$parentQuery = new SQLQuery (
 				'"ID","ParentID", "URLSegment","Version"',
-				'"'.self::$replay_table.'"',
+				'"'.$this->replay_table.'"',
 				'"ID"='.$parentID,
 				null,
 				null,
@@ -267,6 +274,41 @@ class HistoricalLinkMappingTask extends BuildTask {
 		}
 	}
 
+
+	/**
+	 * Create LinkMappings (the whole point of this task) skipping records that;
+	 * - are the current live url
+	 * - have been un-published
+	 * 
+	 */
+	protected function checkAndCreateMappings() {
+		$livePages = DataObject::get('SiteTree');
+		$livePageArray = $livePages->map()->toArray();
+		
+		foreach ($this->linkmappings as $url => $SiteTreeID) {
+			
+			// Check if destination page is still live...
+			if (isset($livePageArray[$SiteTreeID])) {
+				
+				// Finally, ensure that URL != current live URL
+				$query = new SQLQuery (
+							'ID', 
+							$this->replay_table, 
+							'"FullURL"='.'\''.$url.'\''
+				);
+				
+				if ($query->count('ID') == 0) {
+					print($SiteTreeID.' - '.$url.'<br />');
+					
+					if ($this->live) {
+						singleton('SiteTree')->createLinkMapping($url, $SiteTreeID);
+					}
+				}
+			}
+		}
+	}	
+		
+		
 	/**
 	 * Method creates a Database Table of the minimal columns requried to replay the SiteTree
 	 * creation based on the chronological order of the SiteTree_versions table
@@ -279,21 +321,17 @@ class HistoricalLinkMappingTask extends BuildTask {
 			throw new Exception('This task currently only supports mysql...');
 		}
 		
-		$table = self::$replay_table;
-		$tableList = DB::tableList();
-		
-		
 		$replaceArray = self::$db_columns;
 		unset($replaceArray["FullURL"]);
 		$this->replaceColumnString = implode(',',array_keys($replaceArray));
 		
-		if (!in_array($table,$tableList)) {							
-			$options = array(
-				'temporary'
-			);
+		$tableList = DB::tableList();
+		
+		if (self::$use_temporary_table || !in_array(self::$default_table,$tableList)) {
 			
-			//@todo add options to use Temporary Table
-			$tableName = DB::createTable($table, self::$db_columns);
+			$options = self::$use_temporary_table ? array('temporary'=>true) : null;
+			
+			$this->replay_table = DB::createTable(self::$default_table, self::$db_columns, null, $options);
 			
 		} else {
 			//Delete all records from table
